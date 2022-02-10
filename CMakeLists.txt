@@ -19,9 +19,16 @@ find_package(tf2_ros REQUIRED)
 find_package(robot_localization REQUIRED)
 find_package(anchor_msgs REQUIRED)
 
+find_package(Eigen3 REQUIRED)
+
 add_library(ekf_node SHARED src/ekf_node.cpp)
-target_include_directories(ekf_node PRIVATE include)
+target_include_directories(ekf_node PRIVATE include robot_localization-release/include ${EIGEN3_INCLUDE_DIRS})
 ament_target_dependencies(ekf_node rclcpp sensor_msgs geometry_msgs nav_msgs tf2_ros urdf anchor_msgs robot_localization)
+
+# explicitely link against rl_lib from robot_localization
+find_library(rl_lib rl_lib)
+target_link_libraries(ekf_node ${rl_lib})
+
 
 if(NOT WIN32)
   ament_environment_hooks(
