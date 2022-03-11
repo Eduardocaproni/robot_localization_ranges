@@ -1,23 +1,24 @@
 #include <rclcpp/rclcpp.hpp>
 #include <robot_localization_ranges/ekf.h>
 
-namespace robot_localization_ranges
+#include <robot_localization/ros_filter_types.hpp>
+#include <rclcpp/rclcpp.hpp>
+
+#include <algorithm>
+#include <string>
+#include <memory>
+#include <vector>
+
+using namespace robot_localization_ranges;
+
+int main(int argc, char ** argv)
 {
-
-class EKFNode : public rclcpp::Node
-{
-public:
-  EKFNode(rclcpp::NodeOptions options) : rclcpp::Node("ekf", options)
-  {
-
-  }
-
-private:
-
-
-};
+  rclcpp::init(argc, argv);
+  rclcpp::NodeOptions options;
+  options.arguments({"ekf_filter_node"});
+  //auto filter{std::make_shared<robot_localization_ranges::RosFilterRanges<Ekf>>(options)};
+  //filter->initialize();
+  //rclcpp::spin(filter->get_node_base_interface());
+  rclcpp::shutdown();
+  return 0;
 }
-
-#include "rclcpp_components/register_node_macro.hpp"
-
-RCLCPP_COMPONENTS_REGISTER_NODE(robot_localization_ranges::EKFNode)

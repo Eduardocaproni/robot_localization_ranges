@@ -21,17 +21,17 @@ find_package(anchor_msgs REQUIRED)
 
 find_package(Eigen3 REQUIRED)
 
-add_library(ekf_node SHARED 
+add_executable(ekf
     src/ekf_node.cpp 
     src/ros_filter_ranges.cpp 
     src/ekf.cpp)
     
-target_include_directories(ekf_node PRIVATE include robot_localization-release/include ${EIGEN3_INCLUDE_DIRS})
-ament_target_dependencies(ekf_node rclcpp sensor_msgs geometry_msgs nav_msgs tf2_ros urdf anchor_msgs robot_localization)
+target_include_directories(ekf PRIVATE include robot_localization-release/include ${EIGEN3_INCLUDE_DIRS})
+ament_target_dependencies(ekf rclcpp sensor_msgs geometry_msgs nav_msgs tf2_ros urdf anchor_msgs robot_localization)
 
 # explicitely link against rl_lib from robot_localization
 find_library(rl_lib rl_lib)
-target_link_libraries(ekf_node ${rl_lib})
+target_link_libraries(ekf ${rl_lib})
 
 
 if(NOT WIN32)
@@ -40,15 +40,9 @@ if(NOT WIN32)
     )
 endif()
 
-# auto-executable from node
-rclcpp_components_register_node(ekf_node
-  PLUGIN "robot_localization_ranges::EKFNode"
-  EXECUTABLE ekf)
-
-install(TARGETS ekf_node 
+install(TARGETS ekf
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME})
 
-ament_export_libraries(ekf_node)
 ament_package()
