@@ -6,13 +6,16 @@
 
 namespace robot_localization_ranges
 {
-template <class Filter>
-class RosFilterRanges : public robot_localization::RosFilter<Filter>
+
+class RosFilterRanges : public robot_localization::RosFilter<robot_localization_ranges::Ekf>
 {
 public:
   explicit RosFilterRanges(const rclcpp::NodeOptions & options);
   
-  ~RosFilterRanges() {}
+  ~RosFilterRanges()
+  {
+
+  }
   
 };
 

@@ -9,7 +9,9 @@ namespace robot_localization_ranges
 class Ekf : public robot_localization::Ekf
 {
 public:
-  Ekf();
+  Ekf() : robot_localization::Ekf::Ekf() {}
+
+
 };
 
 

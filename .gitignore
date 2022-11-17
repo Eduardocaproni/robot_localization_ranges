@@ -69,3 +69,5 @@ Thumbs.db
 *.tex.backup
 
 !.gitignore
+robot_localization/
+robot_localization-release/
