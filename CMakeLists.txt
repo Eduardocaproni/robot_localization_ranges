@@ -63,8 +63,9 @@ add_library(rl_range SHARED
   ${RL_DIR}/src/ros_filter.cpp
   ${RL_DIR}/src/ros_filter_utilities.cpp
   ${RL_DIR}/src/ros_robot_localization_listener.cpp
-  src/ros_filter_local.cpp
-  src/ekf.cpp)
+  #src/ros_filter_local.cpp
+  #src/ekf.cpp
+  )
 target_include_directories(rl_range PRIVATE include ${RL_DIR}/include ${EIGEN3_INCLUDE_DIRS})
 target_link_libraries(rl_range ${GeographicLib_LIBRARIES})
 ament_target_dependencies(rl_range
@@ -87,14 +88,14 @@ ament_target_dependencies(rl_range
   angles)
 
 
-#add_executable(ekf
-    #src/ekf_node.cpp
-    #src/ros_filter_ranges.cpp
-    #src/ekf.cpp
-    #)
-#target_include_directories(ekf PRIVATE include ${RL_DIR}/include ${EIGEN3_INCLUDE_DIRS})
-#target_link_libraries(ekf rl_range)
-#ament_target_dependencies(ekf rclcpp sensor_msgs geometry_msgs nav_msgs tf2_ros urdf anchor_msgs std_srvs angles)
+add_executable(ekf
+    src/ekf_node.cpp
+    src/ros_filter_ranges.cpp
+    src/ekf.cpp
+    )
+target_include_directories(ekf PRIVATE include ${RL_DIR}/include ${EIGEN3_INCLUDE_DIRS})
+target_link_libraries(ekf rl_range)
+ament_target_dependencies(ekf rclcpp sensor_msgs geometry_msgs nav_msgs tf2_ros urdf anchor_msgs std_srvs angles)
 
 
 if(NOT WIN32)

@@ -7,15 +7,20 @@
 namespace robot_localization_ranges
 {
 
-class RosFilterRanges : public robot_localization::RosFilter<robot_localization_ranges::Ekf>
+/// this class is a sub-class of the classical EKF node
+/// it should parse the range-related parameters
+/// also should handle range measurements and their impact on the underlying EKF
+
+class RosFilterRanges : public robot_localization::RosFilter<robot_localization::Ekf>
 {
 public:
   explicit RosFilterRanges(const rclcpp::NodeOptions & options);
   
-  ~RosFilterRanges()
-  {
+  ~RosFilterRanges() = default;
 
-  }
+
+
+protected:
   
 };
 

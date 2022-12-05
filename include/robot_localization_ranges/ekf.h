@@ -10,10 +10,9 @@ class Ekf : public robot_localization::Ekf
 {
 public:
   Ekf() : robot_localization::Ekf::Ekf() {}
-
+  ~Ekf() = default;
 
 };
-
 
 }
 

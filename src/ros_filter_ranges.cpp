@@ -3,7 +3,7 @@
 using namespace robot_localization_ranges;
 
 RosFilterRanges::RosFilterRanges(const rclcpp::NodeOptions & options)
-  : robot_localization::RosFilter<Ekf>(options)
+  : robot_localization::RosFilter<robot_localization::Ekf>(options)
 {
 
 
