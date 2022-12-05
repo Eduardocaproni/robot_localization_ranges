@@ -2,6 +2,7 @@ from simple_launch import SimpleLauncher
 from numpy import linspace
 import yaml
 
+
 def generate_launch_description():
     sl = SimpleLauncher()
     
@@ -43,11 +44,10 @@ def generate_launch_description():
                        launch_arguments={'frame': name, 'x': x,'y': y, 'publish_gt': sl.arg('publish_gt'),
                                          'covariance': cov, 'covariance_real': cov})
             
-
     with open(sl.find('robot_localization_ranges', 'ekf.yaml'), 'w') as f:
-        yaml.safe_dump(ekf, f)    
+        yaml.safe_dump(ekf, f)
     
-    sl.node('map_simulator', 'simulator', 
+    sl.node('map_simulator', 'simulator',
             parameters = sl.arg_map(('map', 'max_height', 'max_width', 'rate', 'display')))
     
     with sl.group(if_arg='map_server'):
