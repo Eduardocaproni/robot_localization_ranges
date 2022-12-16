@@ -18,9 +18,18 @@ public:
   
   ~RosFilterRanges() = default;
 
-
-
 protected:
+
+  void updateBaseAndRanges()
+  {
+    periodicUpdate();
+
+    // add update form ranges
+
+
+  };
+
+
   
 };
 

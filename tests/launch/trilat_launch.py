@@ -1,6 +1,4 @@
 from simple_launch import SimpleLauncher
-from numpy import linspace
-import yaml
 
 def generate_launch_description():
     sl = SimpleLauncher()
