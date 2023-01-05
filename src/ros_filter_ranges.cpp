@@ -28,12 +28,10 @@ RosFilterRanges::RosFilterRanges(const rclcpp::NodeOptions & options)
                 << anchors.size() << " anchors" << std::endl;
       for(auto &anchor: anchors)
       {
-        const auto x = declare_parameter<double>(param + "_" + anchor + ".pose.x");
-        const auto y = declare_parameter<double>(param + "_" + anchor + ".pose.y");
-        const auto z = declare_parameter<double>(param + "_" + anchor + ".pose.z");
-        beacons[anchor] = Anchor{x,y,z};
-
-
+          const auto x = declare_parameter<double>(param + "_" + anchor + ".pose.x",{});
+          const auto y = declare_parameter<double>(param + "_" + anchor + ".pose.y",{});
+          const auto z = declare_parameter<double>(param + "_" + anchor + ".pose.z",{});
+          beacons[anchor] = Anchor{x,y,z};
       }
       std::cout << std::endl;
 
