@@ -13,7 +13,9 @@
   <depend>tf2_ros</depend>
   <depend>anchor_msgs</depend>
   <depend>robot_localization</depend>
-
+  <depend>simple_launch</depend>
+  <depend>slider_publisher</depend>
+  <depend>navigation2</depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>
