@@ -15,8 +15,13 @@ def generate_launch_description():
     sl.declare_arg('publish_gt',default_value=True,description='Publish real anchor position')
     
     # write trilateration file
-    with open(sl.find('robot_localization_ranges', 'ekf.yaml')) as f:
+    ekf_param_file = sl.find('robot_localization_ranges', 'ekf.yaml')
+    print('Using EKF param @', ekf_param_file)
+
+    with open(ekf_param_file) as f:
         ekf = yaml.safe_load(f)
+
+
                 
     ekf_params = ekf['/**']['ros__parameters']
     ranges = [key for key in ekf_params if key.startswith('range0')]
@@ -29,7 +34,7 @@ def generate_launch_description():
     xmax = 10.6
     ymin = -6.28
     ymax = 4.3
-    steps = 4
+    steps = 2
     cov = 0.
     anchors = [(x, y) for x in linspace(xmin, xmax, steps) for y in linspace(ymin, ymax, steps)]
     
@@ -56,6 +61,16 @@ def generate_launch_description():
         sl.node('nav2_lifecycle_manager','lifecycle_manager',name='lifecycle_manager_map',
         output='screen',
         parameters={'autostart': True, 'node_names': ['map_server']})
+
+    with sl.group(ns='r2d2'):
+        sl.robot_state_publisher('map_simulator', 'r2d2.xacro')
+
+        # spawn in robot namespace to get robot_description
+        sl.node('map_simulator', 'spawn',
+                parameters = {'radius': 0.4, 'shape': 'square', 'force_scanner': False, 'linear_noise': 0.01, 'angular_noise': 0.01,
+                              'static_tf_odom': False})
+
+        sl.node('slider_publisher', 'slider_publisher', arguments=[sl.find('map_simulator', 'cmd_vel.yaml')])
         
     sl.node('rviz2', 'rviz2', arguments=['-d', sl.find('robot_localization_ranges', 'config.rviz')])
         

@@ -574,98 +574,26 @@
         x: -4.5
         y: -6.28
         z: 0.0
-    range0_anchor10:
-      pose:
-        x: 5.566666666666666
-        y: -2.7533333333333334
-        z: 0.0
-    range0_anchor11:
-      pose:
-        x: 5.566666666666666
-        y: 0.7733333333333334
-        z: 0.0
-    range0_anchor12:
-      pose:
-        x: 5.566666666666666
-        y: 4.3
-        z: 0.0
-    range0_anchor13:
-      pose:
-        x: 10.6
-        y: -6.28
-        z: 0.0
-    range0_anchor14:
-      pose:
-        x: 10.6
-        y: -2.7533333333333334
-        z: 0.0
-    range0_anchor15:
-      pose:
-        x: 10.6
-        y: 0.7733333333333334
-        z: 0.0
-    range0_anchor16:
-      pose:
-        x: 10.6
-        y: 4.3
-        z: 0.0
     range0_anchor2:
       pose:
         x: -4.5
-        y: -2.7533333333333334
+        y: 4.3
         z: 0.0
     range0_anchor3:
       pose:
-        x: -4.5
-        y: 0.7733333333333334
+        x: 10.6
+        y: -6.28
         z: 0.0
     range0_anchor4:
       pose:
-        x: -4.5
+        x: 10.6
         y: 4.3
-        z: 0.0
-    range0_anchor5:
-      pose:
-        x: 0.5333333333333332
-        y: -6.28
-        z: 0.0
-    range0_anchor6:
-      pose:
-        x: 0.5333333333333332
-        y: -2.7533333333333334
-        z: 0.0
-    range0_anchor7:
-      pose:
-        x: 0.5333333333333332
-        y: 0.7733333333333334
-        z: 0.0
-    range0_anchor8:
-      pose:
-        x: 0.5333333333333332
-        y: 4.3
-        z: 0.0
-    range0_anchor9:
-      pose:
-        x: 5.566666666666666
-        y: -6.28
         z: 0.0
     range0_anchors:
     - anchor1
     - anchor2
     - anchor3
     - anchor4
-    - anchor5
-    - anchor6
-    - anchor7
-    - anchor8
-    - anchor9
-    - anchor10
-    - anchor11
-    - anchor12
-    - anchor13
-    - anchor14
-    - anchor15
-    - anchor16
     sensor_timeout: 0.1
     stamped_control: false
     transform_time_offset: 0.0
