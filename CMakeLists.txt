@@ -106,10 +106,12 @@ if(NOT WIN32)
 endif()
   
 install(
-  TARGETS rl_range #efk
+  TARGETS rl_range
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
+
+install(TARGETS ekf RUNTIME DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY tests DESTINATION share/${PROJECT_NAME})
 

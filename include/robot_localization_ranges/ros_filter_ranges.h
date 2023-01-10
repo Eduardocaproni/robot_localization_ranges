@@ -26,6 +26,8 @@ public:
 
   std::map<std::string, Anchor> beacons;
 
+  void anchorCallback(const anchor_msgs::msg::RangeWithCovariance::SharedPtr msg);
+
 protected:
 
   void createSubscribers();
@@ -40,7 +42,8 @@ protected:
 
   };
 
-
+  rclcpp::Subscription<anchor_msgs::msg::RangeWithCovariance>::SharedPtr
+    range_sub_;
   
 };
 
