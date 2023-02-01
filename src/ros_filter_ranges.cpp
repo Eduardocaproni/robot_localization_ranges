@@ -10,8 +10,8 @@ using namespace robot_localization_ranges;
 
 void RosFilterRanges::anchorCallback(const RangeWithCovariance::SharedPtr msg){
       std::string frame_id = msg->header.frame_id;
-      Anchor anchor = beacons[frame_id];
-      anchor.latest_reading = msg;
+      this->ranges.push_back(*msg);
+      std::cout << "Got new range message " << std::endl;
 }
 
 RosFilterRanges::RosFilterRanges(const rclcpp::NodeOptions & options)

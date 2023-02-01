@@ -106,7 +106,7 @@ if(NOT WIN32)
 endif()
   
 install(
-  TARGETS rl_range
+  TARGETS rl_range ekf
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
