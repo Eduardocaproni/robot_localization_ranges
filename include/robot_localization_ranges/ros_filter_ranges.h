@@ -5,13 +5,15 @@
 #include <robot_localization/ros_filter.hpp>
 #include <robot_localization_ranges/ekf.h>
 
+using anchor_msgs::msg::RangeWithCovariance;
+
 namespace robot_localization_ranges
 {
 
 struct Anchor
 {
   double x,y,z;
-  anchor_msgs::msg::RangeWithCovariance::SharedPtr latest_reading;
+  RangeWithCovariance::SharedPtr latest_reading;
 };
 /// this class is a sub-class of the classical EKF node
 /// it should parse the range-related parameters
@@ -26,25 +28,23 @@ public:
 
   std::map<std::string, Anchor> beacons;
 
-  void anchorCallback(const anchor_msgs::msg::RangeWithCovariance::SharedPtr msg);
+  void anchorCallback(const RangeWithCovariance::SharedPtr msg);
 
 protected:
 
   void createSubscribers();
 
-  void updateBaseAndRanges()
+  inline void updateAll()
   {
     periodicUpdate();
+    rangeUpdate();
+  }
 
-    // add update form ranges
-    // learn how to read messages from the anchors
-    // learn how to compose them with the periodic update
+  void rangeUpdate();
 
-  };
-
-  rclcpp::Subscription<anchor_msgs::msg::RangeWithCovariance>::SharedPtr
+  rclcpp::Subscription<RangeWithCovariance>::SharedPtr
     range_sub_;
-  
+  std::vector<RangeWithCovariance> ranges;
 };
 
 }

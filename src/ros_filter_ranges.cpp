@@ -2,12 +2,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <anchor_msgs/msg/range_with_covariance.hpp>
 
+using anchor_msgs::msg::RangeWithCovariance;
 using namespace robot_localization_ranges;
 
 // Questions:
 // How do we consider the case when the vehicle is out of range for an anchor?
 
-void RosFilterRanges::anchorCallback(const anchor_msgs::msg::RangeWithCovariance::SharedPtr msg){
+void RosFilterRanges::anchorCallback(const RangeWithCovariance::SharedPtr msg){
       std::string frame_id = msg->header.frame_id;
       Anchor anchor = beacons[frame_id];
       anchor.latest_reading = msg;
@@ -53,16 +54,37 @@ RosFilterRanges::RosFilterRanges(const rclcpp::NodeOptions & options)
     this->beacons = _beacons;
   }
 
-  range_sub_ = this->create_subscription<anchor_msgs::msg::RangeWithCovariance>(
+  range_sub_ = this->create_subscription<RangeWithCovariance>(
         "/r2d2/ranges", 10,
         std::bind(&RosFilterRanges::anchorCallback, this, std::placeholders::_1));
 
   const std::chrono::duration<double> timespan{1.0 / frequency_};
   timer_ = rclcpp::GenericTimer<rclcpp::VoidCallbackType>::make_shared(
         this->get_clock(), std::chrono::duration_cast<std::chrono::nanoseconds>(timespan),
-        std::bind(&RosFilterRanges::updateBaseAndRanges, this),
+        std::bind(&RosFilterRanges::updateAll, this),
         this->get_node_base_interface()->get_context());
 
 
   // end of scope
+}
+
+void RosFilterRanges::rangeUpdate()
+{
+  // for(const auto &range: ranges)
+  // {
+  //   // beacon frame
+  //   if(!this->tf_buffer_->canTransform(world_frame_id_, range.header.frame_id, tf2::TimePointZero))
+  //     continue;
+
+  //   // beacon XYZ position in world frame
+  //   const auto beacon = tf_buffer_->lookupTransform(world_frame_id_, range.header.frame_id, tf2::TimePointZero).transform.translation;
+
+  //   //range.range
+  //   //range.covariance
+
+  //   //getFilter().getState()
+  //   //getFilter().getEstimateErrorCovariance()
+
+  //   //getFilter().setState()
+  // }
 }
