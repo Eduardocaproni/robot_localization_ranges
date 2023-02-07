@@ -2,6 +2,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <anchor_msgs/msg/range_with_covariance.hpp>
 
+
+
 using anchor_msgs::msg::RangeWithCovariance;
 using namespace robot_localization_ranges;
 
@@ -67,9 +69,7 @@ RosFilterRanges::RosFilterRanges(const rclcpp::NodeOptions & options)
 
   // end of scope
 }
-/*
- * Pourquoi pas utiliser range
- */
+
 void RosFilterRanges::rangeUpdate()
 {
     
@@ -81,21 +81,20 @@ void RosFilterRanges::rangeUpdate()
      
      // beacon XYZ position in world frame
      const auto beacon = tf_buffer_->lookupTransform(map_frame_id_, range.header.frame_id, tf2::TimePointZero).transform.translation;
-    
+
+     //getting actual state
      auto x_hat = getFilter().getState();
      auto x_hat_covariance = getFilter().getEstimateErrorCovariance();
 
-     //---------Extended Kalman Filter------
-     int update_size = 2;
-     int measurement_size = 1;
+     //----------------Extended Kalman Filter--------------------
      // Now set up the relevant matrices
-     Eigen::VectorXd state_subset(update_size);       // x (in most literature)
-     Eigen::VectorXd measurement_subset(measurement_size);  // z
-     Eigen::MatrixXd measurement_covariance_subset(measurement_size, measurement_size);  // R
-     Eigen::MatrixXd C(measurement_size, update_size);  // C
-     Eigen::MatrixXd kalman_gain_subset(update_size, measurement_size );          // K
-     Eigen::VectorXd innovation_subset(measurement_size);  // y - Cx
-     Eigen::MatrixXd P_subset(update_size, update_size ); //P
+     Eigen::VectorXd state_subset(update_size_);       // x (in most literature)
+     Eigen::VectorXd measurement_subset(measurement_size_);  // y
+     Eigen::MatrixXd measurement_covariance_subset(measurement_size_, measurement_size_);  // R
+     Eigen::MatrixXd C(measurement_size_, update_size_);  // C
+     Eigen::MatrixXd kalman_gain_subset(update_size_, measurement_size_ );          // K
+     Eigen::VectorXd innovation_subset(measurement_size_);  // y - Cx
+     Eigen::MatrixXd P_subset(update_size_, update_size_ ); //P
 
      state_subset.setZero();
      measurement_subset.setZero();
@@ -112,8 +111,8 @@ void RosFilterRanges::rangeUpdate()
        state_subset(1) = x_hat(1);
 
        measurement_covariance_subset(0, 0) = range.covariance;
-       for(int i = 0; i<update_size;i++){
-         for(int j = 0; j<update_size; j++){
+       for(int i = 0; i<update_size_;i++){
+         for(int j = 0; j<update_size_; j++){
            P_subset(i,j) = x_hat_covariance(i,j);
          }
        }
@@ -156,47 +155,57 @@ void RosFilterRanges::rangeUpdate()
        Eigen::MatrixXd hphr_inverse =
          (C * pht + measurement_covariance_subset).inverse();
        kalman_gain_subset.noalias() = pht * hphr_inverse;
-       Eigen::VectorXd y_hat;
+       Eigen::VectorXd y_hat(measurement_size_);
        y_hat(0)= sqrt((pow(x_hat(0)-beacon.x,2)+pow(x_hat(1)-beacon.y,2)));
 
        innovation_subset = (measurement_subset - y_hat);
 
-
        // (2) Check Mahalanobis distance between mapped measurement and state.
-       if (checkMahalanobisThreshold(
+       if (MahalanobisThreshold(
            innovation_subset, hphr_inverse,
-           measurement.mahalanobis_thresh_))
+           mahalanobis_dist_))
        {
          // (3) Apply the gain to the difference between the state and measurement: x
-         // = x + K(z - Hx)
+         // = x + K(y - y_hat)
          state_subset.noalias() += kalman_gain_subset * innovation_subset;
 
          // (4) Update the estimate error covariance using the Joseph form: (I -
-         // KH)P(I - KH)' + KRK'
+         // KC)P(I - KC)' + KRK'
          Eigen::MatrixXd gain_residual = identity_;
-         gain_residual.noalias() -= kalman_gain_subset * state_to_measurement_subset;
-         estimate_error_covariance_ =
-           gain_residual * estimate_error_covariance_ * gain_residual.transpose();
-         estimate_error_covariance_.noalias() += kalman_gain_subset *
+         gain_residual.noalias() -= kalman_gain_subset * C;
+         P_subset =
+           gain_residual * P_subset * gain_residual.transpose();
+         P_subset.noalias() += kalman_gain_subset *
            measurement_covariance_subset *
            kalman_gain_subset.transpose();
 
-         // Handle wrapping of angles
-         wrapStateAngles();
+         //(5) Affect real state and covariance
+         for(int i = 0; i<update_size_;i++){
+             x_hat(i) = state_subset(i);
+         }
+         for(int i = 0; i<update_size_;i++){
+           for(int j = 0; j<update_size_; j++){
+             x_hat_covariance(i,j) = P_subset(i,j);
+           }
+         }
 
-         FB_DEBUG(
-           "Kalman gain subset is:\n" <<
-             kalman_gain_subset << "\nInnovation is:\n" <<
-             innovation_subset << "\nCorrected full state is:\n" <<
-             state_ << "\nCorrected full estimate error covariance is:\n" <<
-             estimate_error_covariance_ <<
-             "\n\n---------------------- /Ekf::correct ----------------------\n");
+         getFilter().setState(x_hat);
+         getFilter().setEstimateErrorCovariance(x_hat_covariance);
        }
-
-
-
-     getFilter().getEstimateErrorCovariance();
-
-//     //getFilter().setState()
    }
+}
+
+
+bool RosFilterRanges::MahalanobisThreshold(
+  const Eigen::VectorXd & innovation,
+  const Eigen::MatrixXd & innovation_covariance, const double mahalanobis_dist)
+{
+  double squared_mahalanobis =
+    innovation.dot(innovation_covariance * innovation);
+  double threshold = mahalanobis_dist * mahalanobis_dist;
+
+  if (squared_mahalanobis >= threshold) 
+    return false;
+
+  return true;
 }

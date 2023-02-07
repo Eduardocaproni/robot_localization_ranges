@@ -40,9 +40,16 @@ protected:
   }
 
   void rangeUpdate();
+  
+  bool MahalanobisThreshold(const Eigen::VectorXd & innovation,
+                            const Eigen::MatrixXd & innovation_covariance, const double mahalanobis_dist);
 
   rclcpp::Subscription<RangeWithCovariance>::SharedPtr range_sub_;
   std::vector<RangeWithCovariance> ranges;
+  int update_size_ = 2; //x,y
+  int measurement_size_ = 1;   //d
+  float mahalanobis_dist_ = 2.7055; //90% chi2 inverse
+  const Eigen::MatrixXd identity_ =  Eigen::MatrixXd::Identity(update_size_,update_size_ );
 };
 
 }
