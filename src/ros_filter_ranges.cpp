@@ -93,6 +93,16 @@ void RosFilterRanges::rangeUpdate()
      auto x_hat = getFilter().getState();
      auto x_hat_covariance = getFilter().getEstimateErrorCovariance();
 
+     // Handle nan and inf values in measurements
+     if (std::isnan(range.range)) {
+       std::cout << "Value was nan. Excluding from update.\n";
+       continue;
+     }
+     if (std::isinf(range.range)) {
+         std::cout <<"Value was inf. Excluding from update.\n";
+         continue;
+     }
+
      //----------------Extended Kalman Filter--------------------
      // Now set up the relevant matrices
      Eigen::VectorXd state_subset(update_size_);       // x (in most literature)
@@ -114,83 +124,58 @@ void RosFilterRanges::rangeUpdate()
 
      // Now build the sub-matrices from the full-sized matrices
        measurement_subset(0) = range.range;
-        if (x_hat(0) != x_hat(0))
-          state_subset(0) = 0;
-        else
-          state_subset(0) = x_hat(0);
-       
-        if (x_hat(1) != x_hat(1))
-          state_subset(1) = 0;
-        else
-          state_subset(1) = x_hat(1);
+
+       state_subset(0) = x_hat(0);
+       state_subset(1) = x_hat(1);
 
        RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat dimension 0: %f", state_subset(0));
        RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat dimension 1: %f", state_subset(1));
-       const Eigen::IOFormat fmt(2, Eigen::DontAlignCols, "\t", " ", "", "", "", "");
-       std::cout << x_hat.transpose().format(fmt) << std::endl;
+//       const Eigen::IOFormat fmt(2, Eigen::DontAlignCols, "\t", " ", "", "", "", "");
 
        measurement_covariance_subset(0, 0) = range.covariance;
-       for(int i = 0; i<update_size_;i++){
-         for(int j = 0; j<update_size_; j++){
-            if(x_hat_covariance(i,j) != x_hat_covariance(i,j))
-              P_subset(i,j) = 0;
-            else
-              P_subset(i,j) = x_hat_covariance(i,j);
-           RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat covariance i: %f j: %f value: %f", i, j, x_hat_covariance(i,j));
-         }
-       }
-
-       RCLCPP_INFO(this->get_logger(), "[Estimation] beacon x: %f y: %f", beacon.x, beacon.y);
-       C(0) = (x_hat(0) - beacon.x)/(sqrt((pow(x_hat(0)-beacon.x,2)+pow(x_hat(1)-beacon.y,2))));
-       C(1) = (x_hat(1) - beacon.y)/(sqrt((pow(x_hat(0)-beacon.x,2)+pow(x_hat(1)-beacon.y,2))));
        // Handle negative (read: bad) covariances in the measurement. Rather
        // than exclude thrangee measurement or make up a covariance, just take
        // the absolute value.
-//       if (measurement_covariance_subset(i, i) < 0) {
-//         FB_DEBUG(
-//           "WARNING: Negative covariance for index " <<
-//             i << " of measurement (value is" <<
-//             measurement_covariance_subset(i, i) <<
-//             "). Using absolute value...\n");
+       if (measurement_covariance_subset(0,0) < 0) {
+           measurement_covariance_subset(0, 0) *=-1;
+       }
+       //If the measurement variance for a given variable is very
+       //near 0 (as in e-50 or so) and the variance for that
+       //variable in the covariance matrix is also near zero, then
+       //the Kalman gain computation will blow up. Really, no
+       //measurement can be completely without error, so add a small
+       //amount in that case.
+       if (measurement_covariance_subset(0, 0) < 1e-9) {
+         measurement_covariance_subset(0, 0) = 1e-9;
+       }
 
-//         measurement_covariance_subset(i, i) =
-//           ::fabs(measurement_covariance_subset(i, i));
-//       }
+       for(int i = 0; i<update_size_;i++){
+         for(int j = 0; j<update_size_; j++){
+              P_subset(i,j) = x_hat_covariance(i,j);
+//           RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat covariance i: %f j: %f value: %f", i, j, x_hat_covariance(i,j));
+         }
+       }
 
-       // If the measurement variance for a given variable is very
-       // near 0 (as in e-50 or so) and the variance for that
-       // variable in the covariance matrix is also near zero, then
-       // the Kalman gain computation will blow up. Really, no
-       // measurement can be completely without error, so add a small
-       // amount in that case.
-//       if (measurement_covariance_subset(i, i) < 1e-9) {
-//         FB_DEBUG(
-//           "WARNING: measurement had very small error covariance for index " <<
-//             update_indices[i] <<
-//             ". Adding some noise to maintain filter stability.\n");
+       C(0) = (x_hat(0) - beacon.x)/(sqrt((pow(x_hat(0)-beacon.x,2)+pow(x_hat(1)-beacon.y,2))));
+       C(1) = (x_hat(1) - beacon.y)/(sqrt((pow(x_hat(0)-beacon.x,2)+pow(x_hat(1)-beacon.y,2))));
 
-//         measurement_covariance_subset(i, i) = 1e-9;
-//       }
-//     }
-       // (1) Compute the Kalman gain: K = (PC') / (CPC' + R)
-       
+       // (1) Compute the Kalman gain: K = (PC') / (CPC' + R) 
        Eigen::MatrixXd pht =
          P_subset * C.transpose();
        Eigen::MatrixXd hphr_inverse =
          (C * pht + measurement_covariance_subset).inverse();
        kalman_gain_subset.noalias() = pht * hphr_inverse;
-       RCLCPP_INFO(this->get_logger(), "[Estimation] Calculated kalman gain");
        Eigen::VectorXd y_hat(measurement_size_);
        y_hat(0)= sqrt((pow(x_hat(0)-beacon.x,2)+pow(x_hat(1)-beacon.y,2)));
 
        innovation_subset = (measurement_subset - y_hat);
-       RCLCPP_INFO(this->get_logger(), "[Estimation] Calculated innovation");
+       RCLCPP_INFO(this->get_logger(), "[Estimation] Innovation:");std::cout<<"trying :"<<innovation_subset<<std::endl;
 
-       // (2) Check Mahalanobis distance between mapped measurement and state.
-      //  if (MahalanobisThreshold(
-      //      innovation_subset, hphr_inverse,
-      //      mahalanobis_dist_))
-      //  {
+        //(2) Check Mahalanobis distance between mapped measurement and state.
+        if (MahalanobisThreshold(
+            innovation_subset, hphr_inverse,
+            mahalanobis_dist_))
+        {
          // (3) Apply the gain to the difference between the state and measurement: x
          // = x + K(y - y_hat)
          state_subset.noalias() += kalman_gain_subset * innovation_subset;
@@ -204,25 +189,24 @@ void RosFilterRanges::rangeUpdate()
          P_subset.noalias() += kalman_gain_subset *
            measurement_covariance_subset *
            kalman_gain_subset.transpose();
-          RCLCPP_INFO(this->get_logger(), "[Estimation] Updating error covariance");
 
          //(5) Affect real state and covariance
          for(int i = 0; i<update_size_;i++){
              x_hat(i) = state_subset(i);
-             RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat i: %f value: %f", i, state_subset(i));
+             RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat i: %d value: %f", i, state_subset(i));
          }
          for(int i = 0; i<update_size_;i++){
            for(int j = 0; j<update_size_; j++){
              x_hat_covariance(i,j) = P_subset(i,j);
            }
          }
-         std::cout << x_hat.transpose().format(fmt) << std::endl;
          getFilter().setState(x_hat);
          getFilter().setEstimateErrorCovariance(x_hat_covariance);
-      //  }
+        }else{
+            std::cout<<"measure discarted by mahalonibis"<<std::endl;
+        }
    }
    ranges.clear();
-   RCLCPP_INFO(this->get_logger(), "Ranges size: %i", ranges.size());
 }
 
 
