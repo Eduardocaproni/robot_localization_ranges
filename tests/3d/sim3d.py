@@ -14,9 +14,14 @@ from rclpy.node import Node
 rclpy.init(args=None)
 node = Node('sim3d')
 br = TransformBroadcaster(node)
+MAX_RANGE = 1e3
+MIN_RANGE = 0.0
+COVARIANCE = 1e-2
 
 anchors = [[0,0,0],
-           [0,0,1]]
+           [0,0,1],
+           [1,0,1],
+           [1,1,1]]
 
 dt = 0.02
 
@@ -59,7 +64,7 @@ def cmd_callback(msg):
 
 cmd_sub = node.create_subscription(Twist, 'cmd_vel', cmd_callback, 1)
 
-#range_pub = ...
+range_pub = node.create_publisher(RangeWithCovariance, '/r2d2/ranges', 10)
 
 def refresh():
     pose.t += pose.R*toMatrix(cmd.linear)*dt
@@ -69,7 +74,17 @@ def refresh():
 
     br.sendTransform(pose.toTF())
 
-    #range_pub.publish
+    for idx, anchor in enumerate(anchors):
+        range = np.linalg.norm(np.array(pose.t) - np.matrix(np.array(anchor)).T)
+        frame_id = f'anchor{idx}'
+
+        range_msg = RangeWithCovariance()
+        range_msg.range_min, range_msg.range_max, range_msg.covariance = MIN_RANGE, MAX_RANGE, COVARIANCE
+        range_msg.range = range
+        range_msg.header.frame_id = frame_id
+        range_msg.moving_frame = 'robot'
+
+        range_pub.publish(range_msg)
 
 
 timer = node.create_timer(dt, refresh)
