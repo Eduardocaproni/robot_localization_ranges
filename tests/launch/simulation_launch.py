@@ -67,7 +67,7 @@ def generate_launch_description():
 
         # spawn in robot namespace to get robot_description
         sl.node('map_simulator', 'spawn',
-                parameters = {'radius': 0.4, 'shape': 'square', 'force_scanner': False, 'linear_noise': 0.01, 'angular_noise': 0.01,
+                parameters = {'radius': 0.4, 'shape': 'square', 'force_scanner': False, 'linear_noise': 0.1, 'angular_noise': 0.1,
                               'static_tf_odom': False})
 
         sl.node('slider_publisher', 'slider_publisher', arguments=[sl.find('map_simulator', 'cmd_vel.yaml')])
