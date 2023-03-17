@@ -318,22 +318,11 @@
     odom_frame: r2d2/odom
     permit_corrected_publication: false
     pose0: example/pose
-    pose0_config:
-    - true
-    - true
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
+    pose0_config: [true, true, false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false]
     pose0_differential: true
     pose0_nodelay: false
     pose0_queue_size: 5

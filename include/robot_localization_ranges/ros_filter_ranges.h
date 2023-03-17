@@ -54,9 +54,14 @@ protected:
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Subscription<RangeWithCovariance>::SharedPtr range_sub_;
   std::vector<RangeWithCovariance> ranges;
-  int update_size_ = 2; //x,y
+  int update_size_ = 3; //x, y, z
   int measurement_size_ = 1;   //d
   float mahalanobis_dist_ = 2.7055; //90% chi2 inverse
+  
+  int estimate_x = false;
+  int estimate_y = false;
+  int estimate_z = false;
+  
   const Eigen::MatrixXd identity_ =  Eigen::MatrixXd::Identity(update_size_,update_size_ );
 };
 
