@@ -18,24 +18,18 @@ MAX_RANGE = 1e3
 MIN_RANGE = 0.0
 COVARIANCE = 1e-2
 
-anchors = [[0,0,0],
-           [0,0,1],
-           [1,0,1],
-           [1,1,1]]
-
-dt = 0.02
-
-
 class Pose:
-    def __init__(self):
-        self.t = np.matrix(np.zeros(3)).T
-        self.R = np.matrix(np.eye(3))
+    def __init__(self, origin_frame='world', child_frame='robot', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
+        self.t = t.T
+        self.R = R
+        self.origin_frame = origin_frame
+        self.child_frame = child_frame
 
     def toTF(self):
         msg = TransformStamped()
-        msg.header.frame_id = 'world'
-        msg.child_frame_id = 'robot'
-
+        msg.header.frame_id = self.origin_frame
+        msg.child_frame_id = self.child_frame
+        
         msg.transform.translation.x = self.t[0,0]
         msg.transform.translation.y = self.t[1,0]
         msg.transform.translation.z = self.t[2,0]
@@ -48,6 +42,16 @@ class Pose:
 
         return msg
 
+anchors = [[0,0,0],
+           [0,0,1],
+           [1,0,1],
+           [1,1,1]]
+for idx, anchor in enumerate(anchors):
+    pose = Pose(child_frame=f'anchor_{idx}', t=np.matrix(np.array(anchor), dtype=float))
+    br.sendTransform(pose.toTF())
+    print(f'anchor_{idx}')
+
+dt = 0.02
 
 pose = Pose()
 cmd = Twist()
@@ -76,7 +80,7 @@ def refresh():
 
     for idx, anchor in enumerate(anchors):
         range = np.linalg.norm(np.array(pose.t) - np.matrix(np.array(anchor)).T)
-        frame_id = f'anchor{idx}'
+        frame_id = f'anchor_{idx}'
 
         range_msg = RangeWithCovariance()
         range_msg.range_min, range_msg.range_max, range_msg.covariance = MIN_RANGE, MAX_RANGE, COVARIANCE
