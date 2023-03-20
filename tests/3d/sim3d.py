@@ -2,6 +2,7 @@
 
 from geometry_msgs.msg import Twist
 from anchor_msgs.msg import RangeWithCovariance
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
 from scipy.spatial.transform import Rotation
@@ -17,6 +18,11 @@ br = TransformBroadcaster(node)
 MAX_RANGE = 1e3
 MIN_RANGE = 0.0
 COVARIANCE = 1e-2
+linear_noise = 0
+angular_noise = 0
+robot_namespace = 'r2d2/'
+link_prefix = ''
+base_link = ''
 
 class Pose:
     def __init__(self, origin_frame='world', child_frame='robot', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
@@ -51,6 +57,78 @@ for idx, anchor in enumerate(anchors):
     br.sendTransform(pose.toTF())
     print(f'anchor_{idx}')
 
+odom = Odometry()
+odom_pub = node.create_publisher(Odometry, robot_namespace + "odom", 10)
+transform = TransformStamped() # ?
+odom.header.frame_id = transform.header.frame_id = link_prefix + "odom";
+odom.child_frame_id = transform.child_frame_id = link_prefix + base_link;
+
+def cmb_sub_function(msg):
+    odom.twist.twist.linear.x = msg.linear.x
+    odom.twist.twist.linear.y = msg.linear.y
+    odom.twist.twist.angular.z = msg.angular.z
+# revisar assinatura
+cmd_sub = node.create_subscription(Twist, robot_namespace + "cmd_vel", cmb_sub_function, 10)
+
+# if(static_tf)
+# {
+# odom2map = TransformStamped();
+# odom2map.header.stamp = sim_node->now();
+# odom2map.header.frame_id = "map";
+# odom2map.child_frame_id = odom.header.frame_id;
+# odom2map.transform.translation.x = pose.x;
+# odom2map.transform.translation.y = pose.y;
+# odom2map.transform.rotation.z = sin(pose.theta/2);
+# odom2map.transform.rotation.w = cos(pose.theta/2);
+# publishStaticTF(odom2map);
+# }
+# else
+# {
+#     pose_gt.header.frame_id = "map";
+# }
+# publish_gt = !static_tf;    
+
+def move(dt):
+    vx = odom.twist.twist.linear.x
+    vy = odom.twist.twist.linear.y
+    vz = odom.twist.twist.linear.z
+    wx = odom.twist.twist.angular.x
+    wy = odom.twist.twist.angular.y
+    wz = odom.twist.twist.angular.z
+
+    # write actual covariance, proportional to velocity
+    odom.twist.covariance[0] = std::max(0.0001, std::abs(vx)*linear_noise*linear_noise)
+    odom.twist.covariance[7] = std::max(0.0001, std::abs(vy)*linear_noise*linear_noise)
+    odom.twist.covariance[35] = std::max(0.0001, std::abs(wz)*angular_noise*angular_noise)
+
+    pose.updateFrom(vx, vy, wz, dt)
+
+    # add noise: command velocity to measured (odometry) one
+    # vx *= (1+linear_noise*unit_noise(random_engine))
+    # vy *= (1+linear_noise*unit_noise(random_engine))
+    # vz *= (1+linear_noise*unit_noise(random_engine))
+    # wx *= (1+linear_noise*unit_noise(random_engine))
+    # wy *= (1+linear_noise*unit_noise(random_engine))
+    # wz *= (1+angular_noise*unit_noise(random_engine))
+
+    #  update noised odometry
+    rel_pose = Pose()
+    # lidar com quaternions
+    rel_pose =  {odom.pose.pose.position.x, odom.pose.pose.position.y, 2*atan2(odom.pose.pose.orientation.z, odom.pose.pose.orientation.w)}
+    rel_pose.updateFrom(vx, vy, wz, dt)
+
+    odom.pose.pose.position.x = rel_pose.x
+    odom.pose.pose.position.y = rel_pose.y
+    odom.pose.pose.position.y = rel_pose.y
+
+    q = Rotation.from_matrix(pose.R).as_quat()
+    msg.transform.rotation.x = q[0]
+    msg.transform.rotation.y = q[1]
+    msg.transform.rotation.z = q[2]
+    msg.transform.rotation.w = q[3]
+    odom.pose.pose.orientation.z = sin(rel_pose.theta/2)
+    odom.pose.pose.orientation.w = cos(rel_pose.theta/2)
+
 dt = 0.02
 
 pose = Pose()
@@ -70,7 +148,7 @@ cmd_sub = node.create_subscription(Twist, 'cmd_vel', cmd_callback, 1)
 
 range_pub = node.create_publisher(RangeWithCovariance, '/r2d2/ranges', 10)
 
-def refresh():
+def publish_ranges():
     pose.t += pose.R*toMatrix(cmd.linear)*dt
     print(pose.t.T)
 
@@ -92,7 +170,22 @@ def refresh():
 
 
 timer = node.create_timer(dt, refresh)
+# const rclcpp::Time &
+def refresh(now):
+    # Robot::refreshStamp();
+    # for robot in robots:
+        # if(robot.connected()):
+    move(dt)
+    publish_ranges()
 
+    # grid.computeLaserScans(robots);
+    # if(last_tf != now.nanoseconds()):
+    #     for robot in robots:
+    #         if(robot.connected()):
+    #             robot.publish(br);
+    #     last_tf = now.nanoseconds();
+
+refresh_timer = create_wall_timer(milliseconds(static_cast<long>(1000*dt)), [&](){refresh(now());})
 
 
 rclpy.spin(node)
