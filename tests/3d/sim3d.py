@@ -4,7 +4,7 @@ from geometry_msgs.msg import Twist
 from anchor_msgs.msg import RangeWithCovariance
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
-from tf2_ros import TransformBroadcaster
+from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
 from scipy.spatial.transform import Rotation
 
 import numpy as np
@@ -15,6 +15,7 @@ from rclpy.node import Node
 rclpy.init(args=None)
 node = Node('sim3d')
 br = TransformBroadcaster(node)
+br_static = StaticTransformBroadcaster(node)
 MAX_RANGE = 1e3
 MIN_RANGE = 0.0
 COVARIANCE = 1e-2
@@ -32,13 +33,15 @@ class Pose:
         self.origin_frame = origin_frame
         self.child_frame = child_frame
 
-    def updateFrom(self):
-        pose.t += pose.R*toMatrix(cmd.linear)*dt
-        print(pose.t.T)
+    def updateFrom(self, linear_twist, angular_twist):
+        # import pdb; pdb.set_trace()
+        self.t += self.R*toMatrix(linear_twist)*dt
+        print(self.t.T)
 
-        pose.R += pose.R*skew(cmd.angular)*dt
+        self.R += self.R*skew(angular_twist)*dt
 
-        br.sendTransform(pose.toTF())
+    def sendTransform(self):
+        br.sendTransform(self.toTF())
 
     def toTF(self):
         msg = TransformStamped()
@@ -49,7 +52,7 @@ class Pose:
         msg.transform.translation.y = self.t[1,0]
         msg.transform.translation.z = self.t[2,0]
 
-        q = Rotation.from_matrix(pose.R).as_quat()
+        q = Rotation.from_matrix(self.R).as_quat()
         msg.transform.rotation.x = q[0]
         msg.transform.rotation.y = q[1]
         msg.transform.rotation.z = q[2]
@@ -73,32 +76,47 @@ odom.header.frame_id = odomTransform.header.frame_id = link_prefix + "odom";
 # odom.header.frame_id = odomTransform.header.frame_id = 'world'
 odom.child_frame_id = odomTransform.child_frame_id = link_prefix + base_link;
 
-def cmb_sub_function(msg):
+dt = 0.02
+
+pose = Pose()
+cmd = Twist()
+
+def toMatrix(v):
+    return np.matrix((v.x,v.y,v.z)).T
+
+def skew(v):
+    return np.matrix([[0, -v.z,v.y],[v.z,0,-v.x],[-v.y,v.x,0]])
+
+# def cmd_callback(msg):
+#     global cmd
+#     cmd = msg
+
+def cmd_callback(msg):
     odom.twist.twist.linear.x = msg.linear.x
     odom.twist.twist.linear.y = msg.linear.y
+    odom.twist.twist.linear.z = msg.linear.z
+    odom.twist.twist.angular.x = msg.angular.x
+    odom.twist.twist.angular.y = msg.angular.y
     odom.twist.twist.angular.z = msg.angular.z
-# revisar assinatura
-cmd_sub = node.create_subscription(Twist, robot_namespace + "cmd_vel", cmb_sub_function, 10)
 
-# if(static_tf)
-# {
-# odom2map = TransformStamped();
-# odom2map.header.stamp = sim_node.now();
-# odom2map.header.frame_id = "map";
-# odom2map.child_frame_id = odom.header.frame_id;
-# odom2map.transform.translation.x = pose.x;
-# odom2map.transform.translation.y = pose.y;
-# odom2map.transform.rotation.z = sin(pose.theta/2);
-# odom2map.transform.rotation.w = cos(pose.theta/2);
-# publishStaticTF(odom2map);
-# }
-# else
-# {
-#     pose_gt.header.frame_id = "map";
-# }
-# publish_gt = !static_tf;    
+# const rclcpp::Time &
+def refresh():
+    move(dt)
+    publish_odom()
+    publish_ranges()
+
+cmd_sub = node.create_subscription(Twist, 'cmd_vel', cmd_callback, 1)
+
+range_pub = node.create_publisher(RangeWithCovariance, '/r2d2/ranges', 10)
+
+timer = node.create_timer(dt, refresh) 
 
 def move(dt):
+    pose.updateFrom(odom.twist.twist.linear, odom.twist.twist.angular)
+    pose.sendTransform()
+    # vx = odom.twist.twist.linear.x
+    # vy = odom.twist.twist.linear.y
+    # vz = odom.twist.twist.linear.z
     # wx = odom.twist.twist.angular.x
     # wy = odom.twist.twist.angular.y
     # wz = odom.twist.twist.angular.z
@@ -108,7 +126,6 @@ def move(dt):
     # odom.twist.covariance[7] = max(0.0001, np.abs(vy)*linear_noise*linear_noise)
     # odom.twist.covariance[35] = max(0.0001, np.abs(wz)*angular_noise*angular_noise)
 
-    pose.updateFrom()
     # add noise: command velocity to measured (odometry) one
     # vx *= (1+linear_noise*unit_noise(random_engine))
     # vy *= (1+linear_noise*unit_noise(random_engine))
@@ -124,34 +141,23 @@ def move(dt):
                                      odom.pose.pose.orientation.y,
                                      odom.pose.pose.orientation.z,
                                      odom.pose.pose.orientation.w]))
-    rel_pose.R = Rotation.from_quat(odom_quat).as_matrix()
-    # possivel fonte de erro
-    rel_pose.t += (rel_pose.R*toMatrix(odom.twist.twist.linear)*dt).T
-    rel_pose.R += rel_pose.R*skew(odom.twist.twist.angular)*dt
-    qx, qy, qz, qw = Rotation.from_matrix(rel_pose.R).as_quat()[0]
+    rel_pose.R = Rotation.from_quat(odom_quat).as_matrix()[0]
+    rel_pose.updateFrom(odom.twist.twist.linear, odom.twist.twist.angular)
+    qx, qy, qz, qw = Rotation.from_matrix(rel_pose.R).as_quat()
 
-    odom.pose.pose.position.x = pose.t[0, 0]
-    odom.pose.pose.position.y = pose.t[1, 0]
-    odom.pose.pose.position.z = pose.t[2, 0]
+    odom.pose.pose.position.x = rel_pose.t[0, 0]
+    odom.pose.pose.position.y = rel_pose.t[1, 0]
+    odom.pose.pose.position.z = rel_pose.t[2, 0]
     odom.pose.pose.orientation.x = qx
     odom.pose.pose.orientation.y = qy
     odom.pose.pose.orientation.z = qz
     odom.pose.pose.orientation.w = qw
 
-    # q = Rotation.from_matrix(pose.R).as_quat()
-    # msg.transform.rotation.x = q[0]
-    # msg.transform.rotation.y = q[1]
-    # msg.transform.rotation.z = q[2]
-    # msg.transform.rotation.w = q[3]
-    # odom.pose.pose.orientation.z = sin(rel_pose.theta/2)
-    # odom.pose.pose.orientation.w = cos(rel_pose.theta/2)
-
 def publish_odom():
     # odom.header.stamp = transform.header.stamp = stamp;
 
     # build odom angle & publish as msg + tf
-    odom_pub.publish(odom);
-
+    odom_pub.publish(odom)
     #  build transform odom . base link
     odomTransform.transform.translation.x = odom.pose.pose.position.x
     odomTransform.transform.translation.y = odom.pose.pose.position.y
@@ -170,7 +176,7 @@ def publish_odom():
     odom2map.transform.rotation.y = qy
     odom2map.transform.rotation.z = qz
     odom2map.transform.rotation.w = qw
-    br.sendTransform(odom2map)
+    br_static.sendTransform(odom2map)
 
     if(publish_gt):
         pose_gt = TransformStamped()
@@ -187,31 +193,6 @@ def publish_odom():
 
         br.sendTransform(pose_gt)
 
-dt = 0.02
-
-pose = Pose()
-cmd = Twist()
-
-def toMatrix(v):
-    return np.matrix((v.x,v.y,v.z)).T
-
-def skew(v):
-    return np.matrix([[0, -v.z,v.y],[v.z,0,-v.x],[-v.y,v.x,0]])
-
-def cmd_callback(msg):
-    global cmd
-    cmd = msg
-
-# const rclcpp::Time &
-def refresh():
-    move(dt)
-    publish_odom()
-    publish_ranges()
-
-cmd_sub = node.create_subscription(Twist, 'cmd_vel', cmd_callback, 1)
-
-range_pub = node.create_publisher(RangeWithCovariance, '/r2d2/ranges', 10)
-
 def publish_ranges():
     for idx, anchor in enumerate(anchors):
         range = np.linalg.norm(np.array(pose.t) - np.matrix(np.array(anchor)).T)
@@ -224,10 +205,6 @@ def publish_ranges():
         range_msg.moving_frame = 'robot'
 
         range_pub.publish(range_msg)
-
-
-timer = node.create_timer(dt, refresh)
-
 
 rclpy.spin(node)
 
