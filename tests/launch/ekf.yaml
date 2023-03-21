@@ -560,24 +560,24 @@
     range0: ranges
     range0_anchor1:
       pose:
-        x: -4.5
-        y: -6.28
+        x: 0.0
+        y: 0.0
         z: 0.0
     range0_anchor2:
       pose:
-        x: -4.5
-        y: 4.3
-        z: 0.0
+        x: 0.0
+        y: 0.0
+        z: 1.0
     range0_anchor3:
       pose:
-        x: 10.6
-        y: -6.28
-        z: 0.0
+        x: 1.0
+        y: 0.0
+        z: 1.0
     range0_anchor4:
       pose:
-        x: 10.6
-        y: 4.3
-        z: 0.0
+        x: 1.0
+        y: 1.0
+        z: 1.0
     range0_anchors:
     - anchor1
     - anchor2

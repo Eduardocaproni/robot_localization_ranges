@@ -65,7 +65,7 @@ anchors = [[0,0,0],
            [1,0,1],
            [1,1,1]]
 for idx, anchor in enumerate(anchors):
-    pose = Pose(child_frame=f'anchor_{idx}', t=np.matrix(np.array(anchor), dtype=float))
+    pose = Pose(child_frame=f'anchor{idx+1}', t=np.matrix(np.array(anchor), dtype=float))
     br.sendTransform(pose.toTF())
     print(f'anchor_{idx}')
 
@@ -74,12 +74,25 @@ odom_pub = node.create_publisher(Odometry, robot_namespace + "odom", 10)
 odomTransform = TransformStamped() # ?
 odom.header.frame_id = odomTransform.header.frame_id = link_prefix + "odom";
 # odom.header.frame_id = odomTransform.header.frame_id = 'world'
-odom.child_frame_id = odomTransform.child_frame_id = link_prefix + base_link;
+odom.child_frame_id = odomTransform.child_frame_id = link_prefix + base_link
 
 dt = 0.02
 
 pose = Pose()
 cmd = Twist()
+
+odom2map = TransformStamped()
+odom2map.header.frame_id = "world";
+odom2map.child_frame_id = odom.header.frame_id
+odom2map.transform.translation.x = pose.t[0, 0]
+odom2map.transform.translation.y = pose.t[1, 0]
+odom2map.transform.translation.y = pose.t[2, 0]
+qx, qy, qz, qw = Rotation.from_matrix(pose.R).as_quat()
+odom2map.transform.rotation.x = qx
+odom2map.transform.rotation.y = qy
+odom2map.transform.rotation.z = qz
+odom2map.transform.rotation.w = qw
+br_static.sendTransform(odom2map)
 
 def toMatrix(v):
     return np.matrix((v.x,v.y,v.z)).T
@@ -165,45 +178,17 @@ def publish_odom():
     odomTransform.transform.rotation = odom.pose.pose.orientation
     br.sendTransform(odomTransform)
 
-    odom2map = TransformStamped()
-    odom2map.header.frame_id = "world";
-    odom2map.child_frame_id = odom.header.frame_id
-    odom2map.transform.translation.x = pose.t[0, 0]
-    odom2map.transform.translation.y = pose.t[1, 0]
-    odom2map.transform.translation.y = pose.t[2, 0]
-    qx, qy, qz, qw = Rotation.from_matrix(pose.R).as_quat()
-    odom2map.transform.rotation.x = qx
-    odom2map.transform.rotation.y = qy
-    odom2map.transform.rotation.z = qz
-    odom2map.transform.rotation.w = qw
-    br_static.sendTransform(odom2map)
-
-    if(publish_gt):
-        pose_gt = TransformStamped()
-        pose_gt.child_frame_id = odom.child_frame_id + "_gt"
-        # pose_gt.header.stamp = stamp
-        pose_gt.transform.translation.x = pose.t[0, 0]
-        pose_gt.transform.translation.y = pose.t[1, 0]
-        pose_gt.transform.translation.y = pose.t[2, 0]
-        qx, qy, qz, qw = Rotation.from_matrix(pose.R).as_quat()
-        pose_gt.transform.rotation.x = qx
-        pose_gt.transform.rotation.y = qy
-        pose_gt.transform.rotation.z = qz
-        pose_gt.transform.rotation.w = qw
-
-        br.sendTransform(pose_gt)
-
 def publish_ranges():
     for idx, anchor in enumerate(anchors):
         range = np.linalg.norm(np.array(pose.t) - np.matrix(np.array(anchor)).T)
-        frame_id = f'anchor_{idx}'
+        frame_id = f'anchor{idx+1}'
 
         range_msg = RangeWithCovariance()
         range_msg.range_min, range_msg.range_max, range_msg.covariance = MIN_RANGE, MAX_RANGE, COVARIANCE
         range_msg.range = range
         range_msg.header.frame_id = frame_id
         range_msg.moving_frame = 'robot'
-
+        print(frame_id)
         range_pub.publish(range_msg)
 
 rclpy.spin(node)
