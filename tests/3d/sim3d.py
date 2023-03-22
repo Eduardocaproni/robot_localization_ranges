@@ -124,17 +124,20 @@ timer = node.create_timer(dt, refresh)
 def move(dt):
     pose.updateFrom(odom.twist.twist.linear, odom.twist.twist.angular)
     pose.sendTransform()
-    # vx = odom.twist.twist.linear.x
-    # vy = odom.twist.twist.linear.y
-    # vz = odom.twist.twist.linear.z
-    # wx = odom.twist.twist.angular.x
-    # wy = odom.twist.twist.angular.y
-    # wz = odom.twist.twist.angular.z
-
+    vx = odom.twist.twist.linear.x
+    vy = odom.twist.twist.linear.y
+    vz = odom.twist.twist.linear.z
+    wx = odom.twist.twist.angular.x
+    wy = odom.twist.twist.angular.y
+    wz = odom.twist.twist.angular.z
+    
     # write actual covariance, proportional to velocity
-    # odom.twist.covariance[0] = max(0.0001, np.abs(vx)*linear_noise*linear_noise)
-    # odom.twist.covariance[7] = max(0.0001, np.abs(vy)*linear_noise*linear_noise)
-    # odom.twist.covariance[35] = max(0.0001, np.abs(wz)*angular_noise*angular_noise)
+    odom.twist.covariance[0] = max(0.0001, np.abs(vx)*linear_noise*linear_noise)
+    odom.twist.covariance[7] = max(0.0001, np.abs(vy)*linear_noise*linear_noise)
+    odom.twist.covariance[14] = max(0.0001, np.abs(vz)*linear_noise*linear_noise)
+    odom.twist.covariance[21] = max(0.0001, np.abs(wx)*linear_noise*linear_noise)
+    odom.twist.covariance[28] = max(0.0001, np.abs(wy)*linear_noise*linear_noise)
+    odom.twist.covariance[35] = max(0.0001, np.abs(wz)*angular_noise*angular_noise)
 
     # add noise: command velocity to measured (odometry) one
     # vx *= (1+linear_noise*unit_noise(random_engine))
