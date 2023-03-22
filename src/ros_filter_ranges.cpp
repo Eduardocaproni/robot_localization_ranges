@@ -84,9 +84,12 @@ void RosFilterRanges::rangeUpdate()
   {
     RCLCPP_INFO(this->get_logger(), "[Estimation] Starting");
     // beacon frame  
-    if(!this->tf_buffer_->canTransform(map_frame_id_, range.header.frame_id, tf2::TimePointZero))
+    if(!this->tf_buffer_->canTransform(map_frame_id_, range.header.frame_id, tf2::TimePointZero)){
+      RCLCPP_INFO(this->get_logger(), "Transformation from %s to %s does not exists", map_frame_id_.c_str(), range.header.frame_id.c_str());
       continue;
-    
+    }
+      
+    RCLCPP_INFO(this->get_logger(), "Transformation from %s to %s exists", map_frame_id_.c_str(), range.header.frame_id.c_str());
     // beacon XYZ position in world frame
     const auto beacon = tf_buffer_->lookupTransform(map_frame_id_, range.header.frame_id, tf2::TimePointZero).transform.translation;
 

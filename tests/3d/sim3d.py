@@ -27,7 +27,7 @@ base_link = 'base_link'
 publish_gt = False
 
 class Pose:
-    def __init__(self, origin_frame='world', child_frame='robot', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
+    def __init__(self, origin_frame='map', child_frame='robot', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
         self.t = t.T
         self.R = R
         self.origin_frame = origin_frame
@@ -45,6 +45,7 @@ class Pose:
 
     def toTF(self):
         msg = TransformStamped()
+        msg.header.stamp = node.get_clock().now().to_msg()
         msg.header.frame_id = self.origin_frame
         msg.child_frame_id = self.child_frame
         
@@ -65,15 +66,15 @@ anchors = [[0,0,0],
            [1,0,1],
            [1,1,1]]
 for idx, anchor in enumerate(anchors):
-    pose = Pose(child_frame=f'anchor{idx+1}', t=np.matrix(np.array(anchor), dtype=float))
-    br.sendTransform(pose.toTF())
+    anchor_pose = Pose(child_frame=f'anchor{idx+1}', t=np.matrix(np.array(anchor), dtype=float))
+    br_static.sendTransform(anchor_pose.toTF())
     print(f'anchor_{idx}')
 
 odom = Odometry()
 odom_pub = node.create_publisher(Odometry, robot_namespace + "odom", 10)
 odomTransform = TransformStamped() # ?
 odom.header.frame_id = odomTransform.header.frame_id = link_prefix + "odom";
-# odom.header.frame_id = odomTransform.header.frame_id = 'world'
+# odom.header.frame_id = odomTransform.header.frame_id = 'map'
 odom.child_frame_id = odomTransform.child_frame_id = link_prefix + base_link
 
 dt = 0.02
@@ -82,7 +83,7 @@ pose = Pose()
 cmd = Twist()
 
 odom2map = TransformStamped()
-odom2map.header.frame_id = "world";
+odom2map.header.frame_id = "map";
 odom2map.child_frame_id = odom.header.frame_id
 odom2map.transform.translation.x = pose.t[0, 0]
 odom2map.transform.translation.y = pose.t[1, 0]
@@ -99,10 +100,6 @@ def toMatrix(v):
 
 def skew(v):
     return np.matrix([[0, -v.z,v.y],[v.z,0,-v.x],[-v.y,v.x,0]])
-
-# def cmd_callback(msg):
-#     global cmd
-#     cmd = msg
 
 def cmd_callback(msg):
     odom.twist.twist.linear.x = msg.linear.x
@@ -168,7 +165,6 @@ def move(dt):
 
 def publish_odom():
     # odom.header.stamp = transform.header.stamp = stamp;
-
     # build odom angle & publish as msg + tf
     odom_pub.publish(odom)
     #  build transform odom . base link
