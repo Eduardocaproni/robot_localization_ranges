@@ -6,6 +6,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
 from scipy.spatial.transform import Rotation
+from time import sleep
 
 import numpy as np
 
@@ -22,19 +23,18 @@ COVARIANCE = 1e-2
 linear_noise = 0
 angular_noise = 0
 robot_namespace = 'r2d2/'
-link_prefix = ''
-base_link = 'base_link'
+link_prefix = 'r2d2/'
+base_link = 'base_footprint'
 publish_gt = False
 
 class Pose:
-    def __init__(self, origin_frame='map', child_frame='robot', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
+    def __init__(self, origin_frame='map', child_frame='r2d2/base_footprint_gt', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
         self.t = t.T
         self.R = R
         self.origin_frame = origin_frame
         self.child_frame = child_frame
 
     def updateFrom(self, linear_twist, angular_twist):
-        # import pdb; pdb.set_trace()
         self.t += self.R*toMatrix(linear_twist)*dt
         print(self.t.T)
 
@@ -47,6 +47,7 @@ class Pose:
         msg = TransformStamped()
         msg.header.stamp = node.get_clock().now().to_msg()
         msg.header.frame_id = self.origin_frame
+        # import pdb; pdb.set_trace()
         msg.child_frame_id = self.child_frame
         
         msg.transform.translation.x = self.t[0,0]
@@ -67,8 +68,8 @@ anchors = [[0,0,0],
            [1,1,1]]
 for idx, anchor in enumerate(anchors):
     anchor_pose = Pose(child_frame=f'anchor{idx+1}', t=np.matrix(np.array(anchor), dtype=float))
+    sleep(2)
     br_static.sendTransform(anchor_pose.toTF())
-    print(f'anchor_{idx}')
 
 odom = Odometry()
 odom_pub = node.create_publisher(Odometry, robot_namespace + "odom", 10)
@@ -81,19 +82,6 @@ dt = 0.02
 
 pose = Pose()
 cmd = Twist()
-
-odom2map = TransformStamped()
-odom2map.header.frame_id = "map";
-odom2map.child_frame_id = odom.header.frame_id
-odom2map.transform.translation.x = pose.t[0, 0]
-odom2map.transform.translation.y = pose.t[1, 0]
-odom2map.transform.translation.y = pose.t[2, 0]
-qx, qy, qz, qw = Rotation.from_matrix(pose.R).as_quat()
-odom2map.transform.rotation.x = qx
-odom2map.transform.rotation.y = qy
-odom2map.transform.rotation.z = qz
-odom2map.transform.rotation.w = qw
-br_static.sendTransform(odom2map)
 
 def toMatrix(v):
     return np.matrix((v.x,v.y,v.z)).T
@@ -169,12 +157,13 @@ def move(dt):
 def publish_odom():
     # odom.header.stamp = transform.header.stamp = stamp;
     # build odom angle & publish as msg + tf
+    odom.header.stamp = node.get_clock().now().to_msg()
     odom_pub.publish(odom)
-    #  build transform odom . base link
     odomTransform.transform.translation.x = odom.pose.pose.position.x
     odomTransform.transform.translation.y = odom.pose.pose.position.y
     odomTransform.transform.translation.z = odom.pose.pose.position.z
     odomTransform.transform.rotation = odom.pose.pose.orientation
+    odomTransform.header.stamp = node.get_clock().now().to_msg()
     br.sendTransform(odomTransform)
 
 def publish_ranges():
@@ -186,7 +175,7 @@ def publish_ranges():
         range_msg.range_min, range_msg.range_max, range_msg.covariance = MIN_RANGE, MAX_RANGE, COVARIANCE
         range_msg.range = range
         range_msg.header.frame_id = frame_id
-        range_msg.moving_frame = 'robot'
+        range_msg.moving_frame = 'r2d2/base_footprint'
         print(frame_id)
         range_pub.publish(range_msg)
 
