@@ -28,8 +28,8 @@ br_static = StaticTransformBroadcaster(node)
 MAX_RANGE = 1e3
 MIN_RANGE = 0.0
 COVARIANCE = 1e-2
-linear_noise = 1
-angular_noise = 1
+linear_noise = 0
+angular_noise = 0
 
 robot_namespace = data['/**']['ros__parameters']['base_link_frame'].split('/')[0] + '/'
 link_prefix = robot_namespace
@@ -41,7 +41,7 @@ odom_topic = robot_namespace + data['/**']['ros__parameters']['odom0']
 publish_gt = False
 
 class Pose:
-    def __init__(self, origin_frame=map_frame, child_frame=f'{base_link}base_footprint_gt', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
+    def __init__(self, origin_frame=map_frame, child_frame=f'{robot_namespace}base_footprint_gt', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
         self.t = t.T
         self.R = R
         self.origin_frame = origin_frame
@@ -114,7 +114,6 @@ def cmd_callback(msg):
     odom.twist.twist.angular.y = msg.angular.y
     odom.twist.twist.angular.z = msg.angular.z
 
-# const rclcpp::Time &
 def refresh():
     move(dt)
     publish_odom()
