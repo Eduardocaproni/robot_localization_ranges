@@ -9,26 +9,41 @@ from scipy.spatial.transform import Rotation
 from time import sleep
 
 import numpy as np
+import yaml
+from yaml.loader import SafeLoader
 
 import rclpy
 from rclpy.node import Node
+# TO-DO: When Rviz is launched after initializing this node, it finds only
+# anchor4, also the robot_localization_ranges doesn't find the anchor frames
 
 rclpy.init(args=None)
 node = Node('sim3d')
+
+node.declare_parameter('config_file')
+yaml_file = node.get_parameter('config_file').value
+with open(yaml_file) as f:
+    data = yaml.load(f, Loader=SafeLoader)
+
 br = TransformBroadcaster(node)
 br_static = StaticTransformBroadcaster(node)
 MAX_RANGE = 1e3
 MIN_RANGE = 0.0
 COVARIANCE = 1e-2
-linear_noise = 0
-angular_noise = 0
-robot_namespace = 'r2d2/'
-link_prefix = 'r2d2/'
-base_link = 'base_footprint'
+linear_noise = 1
+angular_noise = 1
+
+robot_namespace = data['/**']['ros__parameters']['base_link_frame'].split('/')[0] + '/'
+link_prefix = robot_namespace
+base_link = data['/**']['ros__parameters']['base_link_frame'].split('/')[1]
+map_frame = data['/**']['ros__parameters']['map_frame']
+odom_frame = data['/**']['ros__parameters']['odom_frame']
+odom_topic = robot_namespace + data['/**']['ros__parameters']['odom0']
+
 publish_gt = False
 
 class Pose:
-    def __init__(self, origin_frame='map', child_frame='r2d2/base_footprint_gt', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
+    def __init__(self, origin_frame=map_frame, child_frame=f'{base_link}base_footprint_gt', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
         self.t = t.T
         self.R = R
         self.origin_frame = origin_frame
@@ -36,7 +51,7 @@ class Pose:
 
     def updateFrom(self, linear_twist, angular_twist):
         self.t += self.R*toMatrix(linear_twist)*dt
-        print(self.t.T)
+        # print(self.t.T)
 
         self.R += self.R*skew(angular_twist)*dt
 
@@ -47,7 +62,6 @@ class Pose:
         msg = TransformStamped()
         msg.header.stamp = node.get_clock().now().to_msg()
         msg.header.frame_id = self.origin_frame
-        # import pdb; pdb.set_trace()
         msg.child_frame_id = self.child_frame
         
         msg.transform.translation.x = self.t[0,0]
@@ -62,20 +76,25 @@ class Pose:
 
         return msg
 
-anchors = [[0,0,0],
-           [0,0,1],
-           [1,0,1],
-           [1,1,1]]
-for idx, anchor in enumerate(anchors):
-    anchor_pose = Pose(child_frame=f'anchor{idx+1}', t=np.matrix(np.array(anchor), dtype=float))
-    sleep(2)
-    br_static.sendTransform(anchor_pose.toTF())
+i = 1
+anchors = []
+anchor_msgs = []
+while f'range0_anchor{i}' in data['/**']['ros__parameters'].keys():
+    anchor_data = data['/**']['ros__parameters'][f'range0_anchor{i}']['pose']
+    anchors.append([anchor_data['x'], anchor_data['y'], anchor_data['z']])    
+    
+    anchor_pose_array = np.array([anchor_data['x'], anchor_data['y'], anchor_data['z']])
+    anchor_pose = Pose(child_frame=f'anchor{i}', t=np.matrix(anchor_pose_array, dtype=float))
+    anchor_msgs.append(anchor_pose.toTF())
+    i+=1
+
+br_static.sendTransform(anchor_msgs)
+
 
 odom = Odometry()
-odom_pub = node.create_publisher(Odometry, robot_namespace + "odom", 10)
+odom_pub = node.create_publisher(Odometry, odom_topic, 10)
 odomTransform = TransformStamped() # ?
-odom.header.frame_id = odomTransform.header.frame_id = link_prefix + "odom";
-# odom.header.frame_id = odomTransform.header.frame_id = 'map'
+odom.header.frame_id = odomTransform.header.frame_id = odom_frame
 odom.child_frame_id = odomTransform.child_frame_id = link_prefix + base_link
 
 dt = 0.02
@@ -105,7 +124,7 @@ def refresh():
 
 cmd_sub = node.create_subscription(Twist, 'cmd_vel', cmd_callback, 1)
 
-range_pub = node.create_publisher(RangeWithCovariance, '/r2d2/ranges', 10)
+range_pub = node.create_publisher(RangeWithCovariance, f'/{robot_namespace}ranges', 10)
 
 timer = node.create_timer(dt, refresh) 
 
@@ -128,12 +147,12 @@ def move(dt):
     odom.twist.covariance[35] = max(0.0001, np.abs(wz)*angular_noise*angular_noise)
 
     # add noise: command velocity to measured (odometry) one
-    # vx *= (1+linear_noise*unit_noise(random_engine))
-    # vy *= (1+linear_noise*unit_noise(random_engine))
-    # vz *= (1+linear_noise*unit_noise(random_engine))
-    # wx *= (1+linear_noise*unit_noise(random_engine))
-    # wy *= (1+linear_noise*unit_noise(random_engine))
-    # wz *= (1+angular_noise*unit_noise(random_engine))
+    vx *= (1+linear_noise*np.random.normal())
+    vy *= (1+linear_noise*np.random.normal())
+    vz *= (1+linear_noise*np.random.normal())
+    wx *= (1+linear_noise*np.random.normal())
+    wy *= (1+linear_noise*np.random.normal())
+    wz *= (1+angular_noise*np.random.normal())
 
     #  update noised odometry
     rel_pose = Pose()
@@ -175,8 +194,8 @@ def publish_ranges():
         range_msg.range_min, range_msg.range_max, range_msg.covariance = MIN_RANGE, MAX_RANGE, COVARIANCE
         range_msg.range = range
         range_msg.header.frame_id = frame_id
-        range_msg.moving_frame = 'r2d2/base_footprint'
-        print(frame_id)
+        range_msg.moving_frame = robot_namespace + base_link
+        # print(frame_id)
         range_pub.publish(range_msg)
 
 rclpy.spin(node)
