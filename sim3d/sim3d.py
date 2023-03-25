@@ -14,8 +14,6 @@ from yaml.loader import SafeLoader
 
 import rclpy
 from rclpy.node import Node
-# TO-DO: When Rviz is launched after initializing this node, it finds only
-# anchor4, also the robot_localization_ranges doesn't find the anchor frames
 
 rclpy.init(args=None)
 node = Node('sim3d')
