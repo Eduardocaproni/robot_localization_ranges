@@ -115,4 +115,12 @@ install(TARGETS ekf RUNTIME DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY tests DESTINATION share/${PROJECT_NAME})
 
+# Install Python modules
+ament_python_install_package(sim3d)
+# Install Python executables
+install(PROGRAMS 
+  sim3d/sim3d.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

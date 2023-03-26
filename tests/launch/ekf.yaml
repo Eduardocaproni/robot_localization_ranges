@@ -571,12 +571,12 @@
     range0_anchor3:
       pose:
         x: 10.6
-        y: -6.28
+        y: 4.3
         z: 0.0
     range0_anchor4:
       pose:
         x: 10.6
-        y: 4.3
+        y: -6.28
         z: 0.0
     range0_anchors:
     - anchor1

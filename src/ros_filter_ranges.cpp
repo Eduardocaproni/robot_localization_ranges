@@ -84,9 +84,12 @@ void RosFilterRanges::rangeUpdate()
   {
     RCLCPP_INFO(this->get_logger(), "[Estimation] Starting");
     // beacon frame  
-    if(!this->tf_buffer_->canTransform(map_frame_id_, range.header.frame_id, tf2::TimePointZero))
+    if(!this->tf_buffer_->canTransform(map_frame_id_, range.header.frame_id, tf2::TimePointZero)){
+      RCLCPP_INFO(this->get_logger(), "Transformation from %s to %s does not exists", map_frame_id_.c_str(), range.header.frame_id.c_str());
       continue;
-    
+    }
+      
+    RCLCPP_INFO(this->get_logger(), "Transformation from %s to %s exists", map_frame_id_.c_str(), range.header.frame_id.c_str());
     // beacon XYZ position in world frame
     const auto beacon = tf_buffer_->lookupTransform(map_frame_id_, range.header.frame_id, tf2::TimePointZero).transform.translation;
 
@@ -142,13 +145,14 @@ void RosFilterRanges::rangeUpdate()
     if (measurement_covariance_subset(0, 0) < 1e-9) {
       measurement_covariance_subset(0, 0) = 1e-9;
     }
+    RCLCPP_INFO(this->get_logger(), "[Estimation] Measurement covariance subset %f", measurement_covariance_subset(0, 0));
 
     for(int i = 0; i<update_size_;i++){
       state_subset(i) = x_hat(i);
-      // RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat dimension 0: %f", state_subset(0));
+      RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat dimension %i: %f", i, state_subset(0));
       for(int j = 0; j<update_size_; j++){
           P_subset(i,j) = x_hat_covariance(i,j);
-          // RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat covariance i: %f j: %f value: %f", i, j, x_hat_covariance(i,j));
+          RCLCPP_INFO(this->get_logger(), "[Estimation] X_hat covariance i: %f j: %f value: %f", i, j, x_hat_covariance(i,j));
       }
     }
 
@@ -156,12 +160,19 @@ void RosFilterRanges::rangeUpdate()
                         estimate_y*pow(x_hat(1)-beacon.y,2)) + 
                         estimate_z*pow(x_hat(2)-beacon.z,2));
 
-    C(0) = estimate_x*(x_hat(0) - beacon.x)/dist;
-    C(1) = estimate_y*(x_hat(1) - beacon.y)/dist;
-    C(2) = estimate_z*(x_hat(2) - beacon.z)/dist;
+    if (dist == 0){
+      C(0) = 0;
+      C(1) = 0;
+      C(2) = 0;
+    } else
+    {
+      C(0) = estimate_x*(x_hat(0) - beacon.x)/dist;
+      C(1) = estimate_y*(x_hat(1) - beacon.y)/dist;
+      C(2) = estimate_z*(x_hat(2) - beacon.z)/dist;
+    }
 
-    RCLCPP_INFO(this->get_logger(), "[Estimation] Z:"); RCLCPP_INFO(this->get_logger(), "%d", estimate_z*x_hat(2)); 
-    RCLCPP_INFO(this->get_logger(), "[Estimation] Beacon Z:"); RCLCPP_INFO(this->get_logger(), "%d", estimate_z*beacon.z);
+    RCLCPP_INFO(this->get_logger(), "[Estimation] Z:"); RCLCPP_INFO(this->get_logger(), "%i, %f", estimate_z, x_hat(2)); 
+    RCLCPP_INFO(this->get_logger(), "[Estimation] Beacon Z:"); RCLCPP_INFO(this->get_logger(), "%i, %f", estimate_z, beacon.z);
     // RCLCPP_INFO(this->get_logger(), "[Estimation] C2:"); RCLCPP_INFO(this->get_logger(), C(2));
 
     // (1) Compute the Kalman gain: K = (PC') / (CPC' + R) 
