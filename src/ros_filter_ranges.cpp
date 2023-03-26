@@ -2,6 +2,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <anchor_msgs/msg/range_with_covariance.hpp>
 #include <iostream>
+#include <random>
 
 #include "robot_localization/ekf.hpp"
 #include "robot_localization/ukf.hpp"
@@ -12,7 +13,7 @@ using namespace robot_localization_ranges;
 void RosFilterRanges::anchorCallback(const RangeWithCovariance::SharedPtr msg){
       std::string frame_id = msg->header.frame_id;
       ranges.push_back(*msg);
-      RCLCPP_INFO(this->get_logger(), "[PushBack] Ranges size: %i", ranges.size());
+//      RCLCPP_INFO(this->get_logger(), "[PushBack] Ranges size: %i", ranges.size());
 }
 
 RosFilterRanges::RosFilterRanges(const rclcpp::NodeOptions & options)
@@ -73,12 +74,12 @@ void RosFilterRanges::rangeUpdate()
   // It's not possible to read the parameter on the initialization
   // a simple workaround was reading it everytime the rangeUpdate
   // function is executed. However we should take a look at it.
-  auto mode = get_parameter("pose0_config").as_bool_array();
-  estimate_x = int(mode[0]);
-  estimate_y = int(mode[1]);
-  estimate_z = int(mode[2]);
-  RCLCPP_INFO(this->get_logger(), "Estimate_x: %b Estimate_y: %b Estimate_z: %b", estimate_x, estimate_y, estimate_z);
-  RCLCPP_INFO(this->get_logger(), "Ranges size: %i", ranges.size());
+//  auto mode = get_parameter("pose0_config").as_bool_array();
+//  estimate_x = int(mode[0]);
+//  estimate_y = int(mode[1]);
+//  estimate_z = int(mode[2]);
+//  RCLCPP_INFO(this->get_logger(), "Estimate_x: %b Estimate_y: %b Estimate_z: %b", estimate_x, estimate_y, estimate_z);
+//  RCLCPP_INFO(this->get_logger(), "Ranges size: %i", ranges.size());
 
   for(const auto &range: ranges)
   {
@@ -90,6 +91,7 @@ void RosFilterRanges::rangeUpdate()
     }
       
     RCLCPP_INFO(this->get_logger(), "Transformation from %s to %s exists", map_frame_id_.c_str(), range.header.frame_id.c_str());
+    
     // beacon XYZ position in world frame
     const auto beacon = tf_buffer_->lookupTransform(map_frame_id_, range.header.frame_id, tf2::TimePointZero).transform.translation;
 
@@ -173,6 +175,7 @@ void RosFilterRanges::rangeUpdate()
 
     RCLCPP_INFO(this->get_logger(), "[Estimation] Z:"); RCLCPP_INFO(this->get_logger(), "%i, %f", estimate_z, x_hat(2)); 
     RCLCPP_INFO(this->get_logger(), "[Estimation] Beacon Z:"); RCLCPP_INFO(this->get_logger(), "%i, %f", estimate_z, beacon.z);
+    
     // RCLCPP_INFO(this->get_logger(), "[Estimation] C2:"); RCLCPP_INFO(this->get_logger(), C(2));
 
     // (1) Compute the Kalman gain: K = (PC') / (CPC' + R) 
@@ -185,7 +188,7 @@ void RosFilterRanges::rangeUpdate()
     y_hat(0)= dist;
 
     innovation_subset = (measurement_subset - y_hat);
-    RCLCPP_INFO(this->get_logger(), "[Estimation] Innovation:");std::cout<<"trying :"<<innovation_subset<<std::endl;
+//    RCLCPP_INFO(this->get_logger(), "[Estimation] Innovation:");std::cout<<"trying :"<<innovation_subset<<std::endl;
 
     //(2) Check Mahalanobis distance between mapped measurement and state.
     if (MahalanobisThreshold(
