@@ -56,7 +56,7 @@ protected:
   std::vector<RangeWithCovariance> ranges;
   int update_size_ = 3; //x, y, z
   int measurement_size_ = 1;   //d
-  float mahalanobis_dist_ = 2.7055; //90% chi2 inverse n = 1
+  float mahalanobis_dist_ = 1.6449; //sqrt 90% chi2 inverse n = 1
   
   int estimate_x = false;
   int estimate_y = false;
