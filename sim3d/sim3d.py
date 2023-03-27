@@ -117,7 +117,7 @@ def refresh():
     publish_odom()
     publish_ranges()
 
-cmd_sub = node.create_subscription(Twist, '/{robot_namespace}cmd_vel', cmd_callback, 1)
+cmd_sub = node.create_subscription(Twist, f'/{robot_namespace}cmd_vel', cmd_callback, 1)
 
 range_pub = node.create_publisher(RangeWithCovariance, f'/{robot_namespace}ranges', 10)
 
