@@ -27,9 +27,9 @@ br = TransformBroadcaster(node)
 br_static = StaticTransformBroadcaster(node)
 MAX_RANGE = 1e3
 MIN_RANGE = 0.0
-COVARIANCE = 1e-2
-linear_noise = 0
-angular_noise = 0
+COVARIANCE = 1e-4
+linear_noise = 1e-5
+angular_noise = 1e-5
 
 robot_namespace = data['/**']['ros__parameters']['base_link_frame'].split('/')[0] + '/'
 link_prefix = robot_namespace
@@ -49,8 +49,6 @@ class Pose:
 
     def updateFrom(self, linear_twist, angular_twist):
         self.t += self.R*toMatrix(linear_twist)*dt
-        # print(self.t.T)
-
         self.R += self.R*skew(angular_twist)*dt
 
     def sendTransform(self):
@@ -119,7 +117,7 @@ def refresh():
     publish_odom()
     publish_ranges()
 
-cmd_sub = node.create_subscription(Twist, 'cmd_vel', cmd_callback, 1)
+cmd_sub = node.create_subscription(Twist, '/{robot_namespace}cmd_vel', cmd_callback, 1)
 
 range_pub = node.create_publisher(RangeWithCovariance, f'/{robot_namespace}ranges', 10)
 
