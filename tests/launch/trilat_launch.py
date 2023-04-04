@@ -1,12 +1,21 @@
+from ament_index_python.packages import get_package_share_directory
 from simple_launch import SimpleLauncher
+from numpy import linspace
+import os
+import yaml
 
 def generate_launch_description():
     sl = SimpleLauncher()
                     
     with sl.group(ns='r2d2'):
+
+        config = os.path.join(
+                 get_package_share_directory('robot_localization_ranges'),
+                'tests', 'launch', 'ekf.yaml'
+        )       
         
         sl.node('robot_localization_ranges', 'trilateration.py',
-                parameters=[sl.find('robot_localization_ranges', 'ekf.yaml')],
+                parameters=[config],
                 output='screen')
 
         # run comparison

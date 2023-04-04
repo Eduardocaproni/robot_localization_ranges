@@ -39,7 +39,7 @@
     - 0.0
     - 0.0
     - 4.5
-    frequency: 10.0
+    frequency: 30.0
     imu0: example/imu
     imu0_config:
     - false
@@ -321,7 +321,7 @@
     pose0_config:
     - true
     - true
-    - false
+    - true
     - false
     - false
     - false
@@ -582,12 +582,12 @@
     range0_anchor3:
       pose:
         x: 10.6
-        y: -6.28
+        y: 4.3
         z: 0.0
     range0_anchor4:
       pose:
         x: 10.6
-        y: 4.3
+        y: -6.28
         z: 0.0
     range0_anchors:
     - anchor1
@@ -619,5 +619,5 @@
     twist0_queue_size: 3
     twist0_rejection_threshold: 2.0
     two_d_mode: false
-    use_control: false
+    use_control: true
     world_frame: map

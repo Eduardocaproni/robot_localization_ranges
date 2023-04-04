@@ -12,7 +12,7 @@ Panels:
         - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.5
-    Tree Height: 782
+    Tree Height: 376
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -120,7 +120,6 @@ Visualization Manager:
       Topic:
         Depth: 1
         Durability Policy: Transient Local
-        Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /map
@@ -139,34 +138,6 @@ Visualization Manager:
         All Enabled: false
         anchor1:
           Value: false
-        anchor10:
-          Value: false
-        anchor10_gt:
-          Value: false
-        anchor11:
-          Value: false
-        anchor11_gt:
-          Value: false
-        anchor12:
-          Value: false
-        anchor12_gt:
-          Value: false
-        anchor13:
-          Value: false
-        anchor13_gt:
-          Value: false
-        anchor14:
-          Value: false
-        anchor14_gt:
-          Value: false
-        anchor15:
-          Value: false
-        anchor15_gt:
-          Value: false
-        anchor16:
-          Value: false
-        anchor16_gt:
-          Value: false
         anchor1_gt:
           Value: false
         anchor2:
@@ -181,30 +152,12 @@ Visualization Manager:
           Value: false
         anchor4_gt:
           Value: false
-        anchor5:
-          Value: false
-        anchor5_gt:
-          Value: false
-        anchor6:
-          Value: false
-        anchor6_gt:
-          Value: false
-        anchor7:
-          Value: false
-        anchor7_gt:
-          Value: false
-        anchor8:
-          Value: false
-        anchor8_gt:
-          Value: false
-        anchor9:
-          Value: false
-        anchor9_gt:
-          Value: false
         map:
           Value: true
         r2d2/base_footprint:
           Value: false
+        r2d2/base_footprint_gt:
+          Value: true
         r2d2/base_link:
           Value: false
         r2d2/box:
@@ -238,34 +191,6 @@ Visualization Manager:
         map:
           anchor1:
             {}
-          anchor10:
-            {}
-          anchor10_gt:
-            {}
-          anchor11:
-            {}
-          anchor11_gt:
-            {}
-          anchor12:
-            {}
-          anchor12_gt:
-            {}
-          anchor13:
-            {}
-          anchor13_gt:
-            {}
-          anchor14:
-            {}
-          anchor14_gt:
-            {}
-          anchor15:
-            {}
-          anchor15_gt:
-            {}
-          anchor16:
-            {}
-          anchor16_gt:
-            {}
           anchor1_gt:
             {}
           anchor2:
@@ -280,44 +205,8 @@ Visualization Manager:
             {}
           anchor4_gt:
             {}
-          anchor5:
+          r2d2/base_footprint_gt:
             {}
-          anchor5_gt:
-            {}
-          anchor6:
-            {}
-          anchor6_gt:
-            {}
-          anchor7:
-            {}
-          anchor7_gt:
-            {}
-          anchor8:
-            {}
-          anchor8_gt:
-            {}
-          anchor9:
-            {}
-          anchor9_gt:
-            {}
-          r2d2/odom:
-            r2d2/base_footprint:
-              r2d2/base_link:
-                r2d2/head:
-                  r2d2/box:
-                    {}
-                r2d2/left_leg:
-                  r2d2/left_base:
-                    r2d2/left_back_wheel:
-                      {}
-                    r2d2/left_front_wheel:
-                      {}
-                r2d2/right_leg:
-                  r2d2/right_base:
-                    r2d2/right_back_wheel:
-                      {}
-                    r2d2/right_front_wheel:
-                      {}
       Update Interval: 0
       Value: true
   Enabled: true
@@ -335,9 +224,6 @@ Visualization Manager:
     - Class: rviz_default_plugins/Measure
       Line color: 128; 128; 0
     - Class: rviz_default_plugins/SetInitialPose
-      Covariance x: 0.25
-      Covariance y: 0.25
-      Covariance yaw: 0.06853891909122467
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -389,16 +275,16 @@ Visualization Manager:
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1053
+  Height: 614
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001d9000003b2fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000007901000003fb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000044000003b2000000fd01000003fb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000110000003b2fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730100000044000003b2000000d301000003fb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d0065010000000000000450000000000000000000000495000003b200000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001d90000020cfc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000020c000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c0000026100000001000001100000020cfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d0000020c000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000002610000020c00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1920
-  X: 1920
-  Y: 0
+  Width: 1366
+  X: 0
+  Y: 25
