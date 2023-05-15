@@ -10,19 +10,16 @@ def generate_launch_description():
     sl.declare_arg('max_height', default_value=800)
     sl.declare_arg('max_width', default_value=1200)
     sl.declare_arg('rate', default_value=20)
-    sl.declare_arg('map_server', default_value=True)
     sl.declare_arg('display', default_value=True)
     sl.declare_arg('publish_gt',default_value=True,description='Publish real anchor position')
     
-    # write trilateration file
-    ekf_param_file = sl.find('robot_localization_ranges', 'ekf.yaml')
+    # write EFK file to be sure beacons are sync between simulation and EKF
+    ekf_param_file = sl.find('robot_localization_ranges', 'ekf_2d_example.yaml')
     print('Using EKF param @', ekf_param_file)
 
     with open(ekf_param_file) as f:
         ekf = yaml.safe_load(f)
 
-
-                
     ekf_params = ekf['/**']['ros__parameters']
     ranges = [key for key in ekf_params if key.startswith('range0')]
     for key in ranges:
@@ -49,29 +46,27 @@ def generate_launch_description():
                        launch_arguments={'frame': name, 'x': x,'y': y, 'publish_gt': sl.arg('publish_gt'),
                                          'covariance': cov, 'covariance_real': cov})
             
-    with open(sl.find('robot_localization_ranges', 'ekf.yaml'), 'w') as f:
+    with open(ekf_param_file, 'w') as f:
         yaml.safe_dump(ekf, f)
     
     sl.node('map_simulator', 'simulator',
             parameters = sl.arg_map(('map', 'max_height', 'max_width', 'rate', 'display')))
     
-    with sl.group(if_arg='map_server'):
-        sl.node('nav2_map_server','map_server',name='map_server',
-            parameters={'yaml_filename': sl.arg('map')})
-        sl.node('nav2_lifecycle_manager','lifecycle_manager',name='lifecycle_manager_map',
-        output='screen',
-        parameters={'autostart': True, 'node_names': ['map_server']})
+    sl.node('nav2_map_server','map_server',name='map_server',
+        parameters={'yaml_filename': sl.arg('map')})
+    sl.node('nav2_lifecycle_manager','lifecycle_manager',name='lifecycle_manager_map',
+    output='screen',
+    parameters={'autostart': True, 'node_names': ['map_server']})
 
-    with sl.group(ns='r2d2'):
-        sl.robot_state_publisher('map_simulator', 'r2d2.xacro')
+    with sl.group(ns='robot'):
+        sl.robot_state_publisher('map_simulator', 'r2d2.xacro', xacro_args={'prefix':'robot/'})
 
         # spawn in robot namespace to get robot_description
         sl.node('map_simulator', 'spawn',
-                parameters = {'radius': 0.4, 'shape': 'square', 'force_scanner': False, 'linear_noise': 0.1, 'angular_noise': 0.1,
-                              'static_tf_odom': False})
+                parameters = {'radius': 0.4, 'shape': 'square', 'force_scanner': False, 'linear_noise': 0.1, 'angular_noise': 0.1, 'static_tf_odom': False})
 
         sl.node('slider_publisher', 'slider_publisher', arguments=[sl.find('map_simulator', 'cmd_vel.yaml')])
-        
-    sl.node('rviz2', 'rviz2', arguments=['-d', sl.find('robot_localization_ranges', 'config.rviz')])
+
+    sl.rviz(sl.find('robot_localization_ranges', '2d.rviz'))
         
     return sl.launch_description()

@@ -3,7 +3,7 @@
 #include <anchor_msgs/msg/range_with_covariance.hpp>
 
 #include <robot_localization/ros_filter.hpp>
-#include <robot_localization_ranges/ekf.h>
+#include <robot_localization/ekf.hpp>
 
 // #include "robot_localization/ekf.hpp"
 // #include "robot_localization/ukf.hpp"
@@ -20,9 +20,10 @@ struct Anchor
 {
   double x,y,z;
 };
-/// this class is a sub-class of the classical EKF node
-/// it should parse the range-related parameters
-/// also should handle range measurements and their impact on the underlying EKF
+
+/// this class inherits from the classical EKF node
+/// it parses the range-related parameters
+/// also handles range measurements and their impact on the underlying EKF
 
 class RosFilterRanges : public robot_localization::RosFilter<robot_localization::Ekf>
 {
@@ -47,16 +48,20 @@ protected:
 
   void rangeUpdate();
   
-  bool MahalanobisThreshold(const Eigen::VectorXd & innovation,
-                            const Eigen::MatrixXd & innovation_covariance, const double mahalanobis_dist);
+  inline static bool MahalanobisThreshold(const Eigen::VectorXd & innovation,
+                            const Eigen::MatrixXd & innovation_covariance)
+  {
+    const auto squared_mahalanobis{innovation.dot(innovation_covariance * innovation)};
+    const auto threshold{mahalanobis_dist_ * mahalanobis_dist_};
+    return squared_mahalanobis < threshold;
+  }
 
-  // std::unique_ptr<FilterBase> filter_;
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Subscription<RangeWithCovariance>::SharedPtr range_sub_;
+  std::vector<rclcpp::Subscription<RangeWithCovariance>::SharedPtr> range_sub_;
   std::vector<RangeWithCovariance> ranges;
   int update_size_ = 3; //x, y, z
   int measurement_size_ = 1;   //d
-  float mahalanobis_dist_ = 1.6449; //sqrt 90% chi2 inverse n = 1
+  constexpr static auto mahalanobis_dist_{1.6449}; //sqrt 90% chi2 inverse n = 1
   
   int estimate_x = false;
   int estimate_y = false;
