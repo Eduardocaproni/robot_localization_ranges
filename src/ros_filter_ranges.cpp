@@ -69,7 +69,7 @@ void RosFilterRanges::rangeUpdate()
   for(const auto &range: ranges)
   {
     // Handle nan and inf values in measurements
-    if (std::isnan(range.range) || std::isinf(range.range))
+    if (std::isnan(range.range) || std::isinf(range.range) || range.range < 0)
       continue;
 
     // beacon frame

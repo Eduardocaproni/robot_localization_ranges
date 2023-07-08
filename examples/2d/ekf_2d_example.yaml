@@ -593,6 +593,6 @@
     twist0_nodelay: false
     twist0_queue_size: 3
     twist0_rejection_threshold: 2.0
-    two_d_mode: true
+    two_d_mode: false
     use_control: true
     world_frame: map

@@ -6,5 +6,3 @@ Based on two classes that inherit from `robot_localization`:
 
  - `Ekf` (`public robot_localization::Ekf`): the EKF itself
  - `RosFilterRanges` (`public robot_localization::RosFilter<Ekf>`): the ROS interface
-
-Clone this repo with `git clone --recursive` in order to get the headers from `robot_localization`.
