@@ -1,6 +1,7 @@
 #ifndef ROBOT_LOCALIZATION_RANGES_ROS_FILTER_RANGES_H
 #define ROBOT_LOCALIZATION_RANGES_ROS_FILTER_RANGES_H
-#include <anchor_msgs/msg/range_with_covariance.hpp>
+
+#include <map_simulator/msg/range.hpp>
 
 #include <robot_localization/ros_filter.hpp>
 #include <robot_localization/ekf.hpp>
@@ -11,7 +12,7 @@
 // #include "robot_localization/filter_base.hpp"
 // #include "robot_localization/filter_common.hpp"
 
-using anchor_msgs::msg::RangeWithCovariance;
+using map_simulator::msg::Range;
 
 namespace robot_localization_ranges
 {
@@ -34,8 +35,6 @@ public:
 
   std::map<std::string, Anchor> beacons;
 
-  void anchorCallback(const RangeWithCovariance::SharedPtr msg);
-
 protected:
 
   void createSubscribers();
@@ -57,8 +56,8 @@ protected:
   }
 
   rclcpp::TimerBase::SharedPtr timer_;
-  std::vector<rclcpp::Subscription<RangeWithCovariance>::SharedPtr> range_sub_;
-  std::vector<RangeWithCovariance> ranges;
+  std::vector<rclcpp::Subscription<Range>::SharedPtr> range_sub_;
+  std::vector<Range> ranges;
   int update_size_ = 3; //x, y, z
   int measurement_size_ = 1;   //d
   constexpr static auto mahalanobis_dist_{1.6449}; //sqrt 90% chi2 inverse n = 1

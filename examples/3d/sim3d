@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from geometry_msgs.msg import Twist
-from anchor_msgs.msg import RangeWithCovariance
+from map_simulator.msg import Range
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
@@ -122,7 +122,7 @@ def refresh():
 
 cmd_sub = node.create_subscription(Twist, f'/{robot_namespace}cmd_vel', cmd_callback, 1)
 
-range_pub = node.create_publisher(RangeWithCovariance, f'/{robot_namespace}ranges', 10)
+range_pub = node.create_publisher(Range, f'/{robot_namespace}ranges', 10)
 
 timer = node.create_timer(dt, refresh)
 
@@ -191,11 +191,10 @@ def publish_ranges():
         range = np.linalg.norm(np.array(pose.t) - np.matrix(np.array(anchor)).T)
         frame_id = f'anchor{idx+1}'
 
-        range_msg = RangeWithCovariance()
-        range_msg.range_min, range_msg.range_max, range_msg.covariance = MIN_RANGE, MAX_RANGE, COVARIANCE
+        range_msg = Range()
+        range_msg.min_range, range_msg.max_range, range_msg.variance = MIN_RANGE, MAX_RANGE, COVARIANCE
         range_msg.range = range
         range_msg.header.frame_id = frame_id
-        range_msg.moving_frame = robot_namespace + base_link
         # print(frame_id)
         range_pub.publish(range_msg)
 

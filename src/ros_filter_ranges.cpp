@@ -1,17 +1,20 @@
 #include <robot_localization_ranges/ros_filter_ranges.h>
 #include <rclcpp/rclcpp.hpp>
-#include <anchor_msgs/msg/range_with_covariance.hpp>
 #include <iostream>
 #include <random>
 
 #include <robot_localization/ekf.hpp>
 
-using anchor_msgs::msg::RangeWithCovariance;
 using namespace robot_localization_ranges;
 
-void RosFilterRanges::anchorCallback(const RangeWithCovariance::SharedPtr msg){
-  ranges.push_back(*msg);
+auto isValid(const Range &range)
+{
+  return !std::isnan(range.range) and
+      !std::isinf(range.range) and
+      range.range >= range.min_range and
+      range.range <= range.max_range;
 }
+
 
 RosFilterRanges::RosFilterRanges(const rclcpp::NodeOptions & options)
   : robot_localization::RosFilter<robot_localization::Ekf>(options)
@@ -42,9 +45,11 @@ RosFilterRanges::RosFilterRanges(const rclcpp::NodeOptions & options)
 
   for(const auto &topic: range_topics)
   {
-    range_sub_.push_back(this->create_subscription<RangeWithCovariance>(
-                           topic, rclcpp::SensorDataQoS(),
-                           std::bind(&RosFilterRanges::anchorCallback, this, std::placeholders::_1)));
+    range_sub_.push_back(create_subscription<Range>(topic, rclcpp::SensorDataQoS(),
+                                                          [&](Range::UniquePtr msg)
+                         {
+                           ranges.push_back(*msg);
+                         }));
   }
 
   const std::chrono::duration<double> timespan{1.0 / frequency_};
@@ -69,7 +74,7 @@ void RosFilterRanges::rangeUpdate()
   for(const auto &range: ranges)
   {
     // Handle nan and inf values in measurements
-    if (std::isnan(range.range) || std::isinf(range.range) || range.range < 0)
+    if (!isValid(range))
       continue;
 
     // beacon frame
@@ -109,7 +114,7 @@ void RosFilterRanges::rangeUpdate()
     // than exclude the range measurement or make up a covariance, just take
     // the absolute value.
     // also ensure a minimum value for the covariance
-    measurement_covariance_subset(0, 0) = std::max(1e-9, std::abs(range.covariance));
+    measurement_covariance_subset(0, 0) = std::max(1e-9f, std::abs(range.variance));
 
     for(int i = 0; i< update_size_;i++)
     {

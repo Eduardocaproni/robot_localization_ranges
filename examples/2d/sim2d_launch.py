@@ -43,7 +43,7 @@ def generate_launch_description():
         
         with sl.group(ns=name):
             sl.include('map_simulator', 'spawn_anchor_launch.py',
-                       launch_arguments={'frame': name, 'x': x,'y': y, 'publish_gt': sl.arg('publish_gt'),
+                       launch_arguments={'frame_id': name, 'x': x,'y': y, 'publish_gt': sl.arg('publish_gt'),
                                          'covariance': cov, 'covariance_real': cov})
             
     with open(ekf_param_file, 'w') as f:

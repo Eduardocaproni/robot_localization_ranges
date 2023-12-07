@@ -292,28 +292,6 @@
     odom0_twist_rejection_threshold: 1.0
     odom_frame: robot/odom
     permit_corrected_publication: false
-    pose0: example/pose
-    pose0_config:
-    - true
-    - true
-    - true
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    pose0_differential: true
-    pose0_nodelay: false
-    pose0_queue_size: 5
-    pose0_rejection_threshold: 2.0
-    pose0_relative: false
     print_diagnostics: true
     process_noise_covariance:
     - 0.05
@@ -573,26 +551,6 @@
     stamped_control: false
     transform_time_offset: 0.0
     transform_timeout: 0.0
-    twist0: example/twist
-    twist0_config:
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    - true
-    - true
-    - true
-    - false
-    - false
-    - false
-    - false
-    - false
-    - false
-    twist0_nodelay: false
-    twist0_queue_size: 3
-    twist0_rejection_threshold: 2.0
-    two_d_mode: false
+    two_d_mode: true
     use_control: true
     world_frame: map
