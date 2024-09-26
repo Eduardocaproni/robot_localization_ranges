@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
 from geometry_msgs.msg import Twist
-from anchor_msgs.msg import RangeWithCovariance
+from map_simulator.msg import Range
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
 from scipy.spatial.transform import Rotation
-from time import sleep
-
 import numpy as np
 import yaml
 from yaml.loader import SafeLoader
@@ -18,8 +16,7 @@ from rclpy.node import Node
 rclpy.init(args=None)
 node = Node('sim3d')
 
-node.declare_parameter('config_file')
-yaml_file = node.get_parameter('config_file').value
+yaml_file = node.declare_parameter('config_file', '').value
 with open(yaml_file) as f:
     data = yaml.load(f, Loader=SafeLoader)
 
@@ -38,10 +35,10 @@ map_frame = data['/**']['ros__parameters']['map_frame']
 odom_frame = data['/**']['ros__parameters']['odom_frame']
 odom_topic = robot_namespace + data['/**']['ros__parameters']['odom0']
 
-publish_gt = False
 
 class Pose:
-    def __init__(self, origin_frame=map_frame, child_frame=f'{robot_namespace}base_footprint_gt', t=np.matrix(np.zeros(3)), R=np.matrix(np.eye(3))):
+    def __init__(self, origin_frame=map_frame, child_frame=f'{robot_namespace}base_footprint_gt',
+                 t=np.matrix([1,2,3.]), R=np.matrix(np.eye(3))):
         self.t = t.T
         self.R = R
         self.origin_frame = origin_frame
@@ -72,24 +69,25 @@ class Pose:
 
         return msg
 
+
 i = 1
 anchors = []
 anchor_msgs = []
 while f'range0_anchor{i}' in data['/**']['ros__parameters'].keys():
     anchor_data = data['/**']['ros__parameters'][f'range0_anchor{i}']['pose']
-    anchors.append([anchor_data['x'], anchor_data['y'], anchor_data['z']])    
+    anchors.append([anchor_data['x'], anchor_data['y'], anchor_data['z']])
     
     anchor_pose_array = np.array([anchor_data['x'], anchor_data['y'], anchor_data['z']])
     anchor_pose = Pose(child_frame=f'anchor{i}', t=np.matrix(anchor_pose_array, dtype=float))
     anchor_msgs.append(anchor_pose.toTF())
-    i+=1
+    i += 1
 
 br_static.sendTransform(anchor_msgs)
 
 
 odom = Odometry()
 odom_pub = node.create_publisher(Odometry, odom_topic, 10)
-odomTransform = TransformStamped() # ?
+odomTransform = TransformStamped()
 odom.header.frame_id = odomTransform.header.frame_id = odom_frame
 odom.child_frame_id = odomTransform.child_frame_id = link_prefix + base_link
 
@@ -98,11 +96,14 @@ dt = 0.02
 pose = Pose()
 cmd = Twist()
 
+
 def toMatrix(v):
     return np.matrix((v.x,v.y,v.z)).T
 
+
 def skew(v):
     return np.matrix([[0, -v.z,v.y],[v.z,0,-v.x],[-v.y,v.x,0]])
+
 
 def cmd_callback(msg):
     odom.twist.twist.linear.x = msg.linear.x
@@ -112,16 +113,19 @@ def cmd_callback(msg):
     odom.twist.twist.angular.y = msg.angular.y
     odom.twist.twist.angular.z = msg.angular.z
 
+
 def refresh():
     move(dt)
     publish_odom()
     publish_ranges()
 
+
 cmd_sub = node.create_subscription(Twist, f'/{robot_namespace}cmd_vel', cmd_callback, 1)
 
-range_pub = node.create_publisher(RangeWithCovariance, f'/{robot_namespace}ranges', 10)
+range_pub = node.create_publisher(Range, f'/{robot_namespace}ranges', 10)
 
-timer = node.create_timer(dt, refresh) 
+timer = node.create_timer(dt, refresh)
+
 
 def move(dt):
     pose.updateFrom(odom.twist.twist.linear, odom.twist.twist.angular)
@@ -145,8 +149,8 @@ def move(dt):
     vx *= (1+linear_noise*np.random.normal())
     vy *= (1+linear_noise*np.random.normal())
     vz *= (1+linear_noise*np.random.normal())
-    wx *= (1+linear_noise*np.random.normal())
-    wy *= (1+linear_noise*np.random.normal())
+    wx *= (1+angular_noise*np.random.normal())
+    wy *= (1+angular_noise*np.random.normal())
     wz *= (1+angular_noise*np.random.normal())
 
     #  update noised odometry
@@ -168,6 +172,7 @@ def move(dt):
     odom.pose.pose.orientation.z = qz
     odom.pose.pose.orientation.w = qw
 
+
 def publish_odom():
     # odom.header.stamp = transform.header.stamp = stamp;
     # build odom angle & publish as msg + tf
@@ -180,18 +185,19 @@ def publish_odom():
     odomTransform.header.stamp = node.get_clock().now().to_msg()
     br.sendTransform(odomTransform)
 
+
 def publish_ranges():
     for idx, anchor in enumerate(anchors):
         range = np.linalg.norm(np.array(pose.t) - np.matrix(np.array(anchor)).T)
         frame_id = f'anchor{idx+1}'
 
-        range_msg = RangeWithCovariance()
-        range_msg.range_min, range_msg.range_max, range_msg.covariance = MIN_RANGE, MAX_RANGE, COVARIANCE
+        range_msg = Range()
+        range_msg.min_range, range_msg.max_range, range_msg.variance = MIN_RANGE, MAX_RANGE, COVARIANCE
         range_msg.range = range
         range_msg.header.frame_id = frame_id
-        range_msg.moving_frame = robot_namespace + base_link
         # print(frame_id)
         range_pub.publish(range_msg)
+
 
 rclpy.spin(node)
 
